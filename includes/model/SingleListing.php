@@ -187,10 +187,14 @@ class Directorist_Single_Listing {
             }
 
             $field_key = $field['field_key'];
-            $value     = get_post_meta( $this->id, '_' . $field_key, true );
+            if ( in_array( $field_key, [ 'listing_title', 'listing_content' ], true ) ) {
+                $value = $values[ $field_key ];
+            } else {
+                $value = get_post_meta( $this->id, '_' . $field_key, true );
 
-            if ( '' === $value ) {
-                $value = get_post_meta( $this->id, $field_key, true );
+                if ( '' === $value ) {
+                    $value = get_post_meta( $this->id, $field_key, true );
+                }
             }
 
             $values[ $field_key ]  = $value;
