@@ -171,9 +171,49 @@ export function initAddListingMap() {
 
 				// Keep the original input as the form's submitted address field.
 				address_input.after(autocomplete);
-				address_input.style.display = 'none';
+				// A required input must remain focusable for native form validation.
+				// Keep it in the form without showing a second address field.
+				Object.assign(address_input.style, {
+					position: 'absolute',
+					opacity: '0',
+					width: '1px',
+					height: '1px',
+					padding: '0',
+					border: '0',
+					pointerEvents: 'none',
+				});
+				address_input.tabIndex = -1;
+				address_input.setAttribute('aria-hidden', 'true');
+
+				let validationMessage;
+				if (address_input.required) {
+					validationMessage = document.createElement('div');
+					validationMessage.id = 'directorist-address-validation-message';
+					validationMessage.setAttribute('role', 'alert');
+					validationMessage.style.color = '#d63638';
+					validationMessage.style.marginTop = '4px';
+					validationMessage.hidden = true;
+					autocomplete.after(validationMessage);
+					address_input.addEventListener('invalid', (event) => {
+						event.preventDefault();
+						validationMessage.textContent = address_input.validationMessage;
+						validationMessage.hidden = false;
+						autocomplete.setAttribute('aria-invalid', 'true');
+						autocomplete.setAttribute(
+							'aria-describedby',
+							validationMessage.id,
+						);
+						autocomplete.focus();
+					});
+				}
 				const syncAddress = () => {
 					address_input.value = autocomplete.value || '';
+					if (validationMessage && address_input.validity.valid) {
+						validationMessage.textContent = '';
+						validationMessage.hidden = true;
+						autocomplete.removeAttribute('aria-invalid');
+						autocomplete.removeAttribute('aria-describedby');
+					}
 				};
 				autocomplete.addEventListener('input', syncAddress);
 				autocomplete.addEventListener('change', syncAddress);
@@ -190,6 +230,7 @@ export function initAddListingMap() {
 								fields: ['formattedAddress', 'location'],
 							});
 							fillInAddress(place);
+							syncAddress();
 						} catch (error) {
 							console.error(
 								'Directorist: Could not load the selected place.',
