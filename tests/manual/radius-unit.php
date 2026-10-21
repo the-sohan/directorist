@@ -10,10 +10,16 @@ $global_unit   = 'miles';
 $based_on      = 'address';
 $term_filter   = static function( $value, $id, $key ) use ( &$unit, &$based_on ) {
     if ( 'search_form_fields' === $key ) {
-        return [ [ 'fields' => [ 'radius_search' => [
-            'radius_search_unit' => $unit,
-            'radius_search_based_on' => $based_on,
-        ] ] ] ];
+        return [
+            [
+                'fields' => [
+                    'radius_search' => [
+                        'radius_search_unit'     => $unit,
+                        'radius_search_based_on' => $based_on,
+                    ],
+                ],
+            ],
+        ];
     }
     return $value;
 };
@@ -28,7 +34,7 @@ try {
         list( $unit, $global_unit, $expected ) = $case;
         foreach ( [ 'address', 'zip' ] as $based_on ) {
             $_REQUEST = $_GET = [ 'address' => 'Selected location', 'cityLat' => '42.2', 'cityLng' => '12.5', 'zip_cityLat' => '42.2', 'zip_cityLng' => '12.5', 'miles' => '0-25' ];
-            $model = new \Directorist\Directorist_Listings( [], 'search_result' );
+            $model    = new \Directorist\Directorist_Listings( [], 'search_result' );
             if ( $expected !== $model->radius_search_unit || $expected !== ( $model->query_args['atbdp_geo_query']['units'] ?? null ) ) {
                 throw new RuntimeException( 'Wrong query unit for ' . $based_on );
             }
