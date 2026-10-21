@@ -451,7 +451,10 @@ class Directorist_Listings {
         $this->popular_by                  = $this->options['listing_popular_by'];
         $this->average_review_for_popular  = $this->options['average_review_for_popular'];
         $this->view_to_popular             = $this->options['views_for_popular'];
-        $this->radius_search_unit          = $this->options['radius_search_unit'];
+        // Match the unit displayed by this directory's native radius field.
+        $radius_unit = $this->build_search_data( 'radius_search', 'radius_search_unit' );
+        $this->radius_search_unit = in_array( $radius_unit, [ 'miles', 'kilometers' ], true )
+            ? $radius_unit : $this->options['radius_search_unit'];
         $this->default_radius_distance     = $this->options['listing_default_radius_distance'];
         $this->select_listing_map          = $this->options['select_listing_map'];
         $this->filters_display             = $this->options['listings_display_filter'];
