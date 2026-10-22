@@ -2,6 +2,8 @@
 
 Developer entry point: [class-init.php](../../includes/modules/mcp/class-init.php). See the [architecture and file tree](architecture.md) for feature ownership, registration, compatibility and directly loaded UI assets.
 
+Extension developers can follow the [complete tool registration example](extension-tool-example.md), including a runnable plugin and read, preview, execute, and retry requests. See the [extension API reference](extensions.md) for the full registration and adapter contracts.
+
 Directorist exposes 53 core tools for settings, directory configuration, listings, listing taxonomies, orders, dashboard data, Site Health Info and integration discovery, plus explicitly registered extension tools. See [dashboard and Site Health](dashboard-health.md) for read contracts, privacy, extension adapters and supported bounds. The feature ships in core and defaults to disabled. Connecting uses the user's existing WordPress capabilities.
 
 ## Enable and connect
