@@ -63,6 +63,19 @@ module.exports = {
 							'./__build/directorist/directorist/assets/src',
 						],
 					},
+					// Restore the browser-ready MCP source after pruning other sources.
+					{
+						copy: [
+							{
+								source: './assets/src/js/admin/mcp',
+								destination: './__build/directorist/directorist/assets/src/js/admin/mcp',
+							},
+							{
+								source: './assets/src/css/admin/mcp',
+								destination: './__build/directorist/directorist/assets/src/css/admin/mcp',
+							},
+						],
+					},
 					{
 						archive: [
 							{

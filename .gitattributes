@@ -4,7 +4,18 @@
 /.wordpress-org       export-ignore
 /docs                 export-ignore
 
-/assets/src           export-ignore
+# Retain only the directly loaded MCP source assets in Git archives.
+/assets/src/*                    export-ignore
+/assets/src/js                   -export-ignore
+/assets/src/js/*                 export-ignore
+/assets/src/js/admin             -export-ignore
+/assets/src/js/admin/*           export-ignore
+/assets/src/js/admin/mcp         -export-ignore
+/assets/src/css                  -export-ignore
+/assets/src/css/*                export-ignore
+/assets/src/css/admin            -export-ignore
+/assets/src/css/admin/*          export-ignore
+/assets/src/css/admin/mcp        -export-ignore
 
 # Files
 /.editorconfig        export-ignore
