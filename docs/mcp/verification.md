@@ -1,5 +1,7 @@
 # Directorist MCP implementation verification
 
+Historical record: the automated MCP test suites, fixtures, and transport smoke script were removed from this branch on 22 October 2026. Counts and suite descriptions below record checks performed before removal; they are not instructions for running files included in this branch. Follow the [manual request flow](extension-tool-example.md#read-preview-and-execute) and current [architecture checks](architecture.md#verification) for ongoing review.
+
 Latest scope: the initial runtime now contains 53 core tools and additive read-adapter API 1. The original order/extension evidence below is retained as a dated baseline. Dashboard/Site Health evidence follows in the 19 October update.
 
 Implementation reviewed: 18 October 2026. Core tool inventory: 45 definitions plus validated registered extension tools. Registry API major: 1. MCP remains opt-in and was restored to its original disabled state after local verification.
@@ -8,8 +10,8 @@ Implementation reviewed: 18 October 2026. Core tool inventory: 45 definitions pl
 
 | Check | Scope/result |
 |---|---|
-| Original core integration suite | tests/wp-cli/directorist-mcp.php, updated for the 45-tool inventory and narrow purchaser admission |
-| Order/extension integration suite | tests/wp-cli/directorist-mcp-orders-extensions.php; disposable customers/custom staff, native tables, typed field/widget/item fixture and fake providers |
+| Original core integration suite | Historical checks of the 45-tool inventory and narrow purchaser admission |
+| Order/extension integration suite | Historical checks with disposable customers/custom staff, native tables, typed field/widget/item fixtures and fake providers |
 | HTTPS transport | Initialization, negotiated session, 45-tool discovery, context execution, secret-setting denial and application-password revocation |
 | Local stdio bridge | Pinned @automattic/mcp-wordpress-remote 0.5.1 over verified TLS; initialization, discovery and authenticated context |
 | Static checks | Focused PHP syntax/coding standards and Markdown links/catalog traceability; no generated asset build |

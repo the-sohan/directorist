@@ -28,7 +28,7 @@ Reviewed 19 October 2026 against root PRDs 12 and 13 and their shared access, ex
 
 ## Verification and remaining release work
 
-The regression suite is [directorist-mcp-dashboard-health.php](../../tests/wp-cli/directorist-mcp-dashboard-health.php). Reproduction cases use synthetic source fixtures, disposable records and custom roles; they do not install/activate software, refresh updates/accounts or execute provider actions. Native setup is tested with a synthetic directory query, without depending on or modifying existing directory creation dates. Suites share a test lock and restore their captured state in `finally`.
+The historical regression checks used synthetic source fixtures, disposable records and custom roles; they did not install/activate software, refresh updates/accounts or execute provider actions. Native setup was checked with a synthetic directory query, without depending on or modifying existing directory creation dates. Those MCP suites and fixtures have been removed from this branch. Use the [implementation guide](dashboard-health.md#verification) for current manual checks.
 
 Final assertion counts, coding standards, syntax and HTTPS/bridge outcomes are recorded in [verification](verification.md). The [implementation guide](dashboard-health.md) documents the current contract and limits.
 

@@ -119,20 +119,9 @@ No roles, capabilities, tables or existing product data are migrated. The native
 
 ## Verification
 
-On a disposable local WordPress site:
+On a disposable local WordPress site, connect using the guide above and exercise the tools through an MCP client. Discover supported schemas and references, read existing data, preview a supported change, review it, execute with its token/version and a fresh idempotency key, then compare the native result. Repeat the exact successful request/key to check replay, and test rejected access and stale previews with restricted accounts.
 
-    wp eval-file wp-content/plugins/directorist/tests/wp-cli/directorist-mcp.php
-
-The suite requires the local environment type, suppresses mail, creates disposable fixtures, restores settings/default metadata and removes its fixtures in finally.
-
-The HTTP test creates/revokes its own application password for an existing disposable account beginning mcp_ or directorist_mcp_:
-
-    python3 wp-content/plugins/directorist/tests/mcp-http-smoke.py \
-      --user directorist_mcp_test_account \
-      --url https://example.test/wp-json/directorist/mcp \
-      --bridge
-
-For Local, add --socket /absolute/path/mysql.sock and --ca /absolute/path/ca.crt. TLS verification stays enabled.
+The [extension example](extension-tool-example.md#read-preview-and-execute) provides complete manual read, preview, execute, and retry requests. The MCP automated test suites, smoke scripts, and fixtures are not included in this branch. The results below and in [verification](verification.md) are historical evidence from checks performed before their removal.
 
 Verified on 2026-10-18 with WordPress 7.1.3, Directorist 8.10.5, PHP 8.2 CLI / PHP 8.0 web, adapter 0.6.1 and Node.js 22. The original local suite passed **153 assertions** before the order/extension expansion. Current checks and remaining release gates are recorded in [verification](verification.md). PHP coding standards, PHP/JavaScript syntax and PRD links also passed. Checks cover feature-off/alternate-entry guards, owner isolation, revoked capabilities, settings units, extension absence/deactivation, rollback, native builder output, taxonomy safety, image/file preservation, stale state, retries and mixed bulk outcomes. HTTP and pinned-bridge tests exercise real initialization, discovery, execution and revocation.
 

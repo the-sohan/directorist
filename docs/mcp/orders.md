@@ -63,4 +63,4 @@ From a trusted administrator/native integration context with manage_options, cal
 
 ## Verification
 
-Run tests/wp-cli/directorist-mcp-orders-extensions.php on an isolated local site. It uses disposable users/orders, suppresses mail, registers fake providers and restores data/settings in finally. Real gateway settlement, supported legacy installations, high-volume native webhook races, every extension combination and the full release matrix still require staging/provider certification.
+On a disposable local site, discover the order schema, preview and create an unpaid test order, exercise eligible updates/cancellation, and compare native order records. Use synthetic evidence and sandbox providers for payment/refund cases; check exact amounts, purchaser isolation, duplicate retries, unknown outcomes and operation recovery. Restore the original settings and remove test records afterward. Automated MCP suites and fixtures are not included in this branch. Real gateway settlement, supported legacy installations, high-volume native webhook races, every extension combination and the full release matrix still require staging/provider certification.

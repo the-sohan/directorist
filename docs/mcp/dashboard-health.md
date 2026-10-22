@@ -87,8 +87,8 @@ Both core read groups and standalone tools in these domains deny all WordPress H
 
 ## Verification
 
-The local CLI suite `tests/wp-cli/directorist-mcp-dashboard-health.php` covers scoped counts, expiry/favorites, exact currencies, duplicate mappings, local-date/DST boundaries, current-vs-daily views, native runtime collectors, redacted text/JSON, report bounds, registration faults/lifecycle, hidden SQL/HTTP attempts, revoked capabilities, 1,000-item feed truncation and direct abilities. It suppresses mail, serializes fixture suites and restores settings/timezone/users/posts/orders/roles in `finally`.
+Manually compare the dashboard tools with native records using site and own scopes, selected date ranges, exact currency totals, current distributions and independent past/upcoming activity pages. Discover approved Site Health fields before reading them, compare text/JSON report projections, and confirm redaction and capability restrictions. Test extension removal and direct abilities without broadening access. Automated MCP suites and fixtures are not included in this branch.
 
-Real HTTPS tests call all eight tools, verify 53-tool discovery and credential revocation, and use the pinned stdio bridge 0.5.1 over trusted TLS. No live financial/provider operation, account refresh, update/status test, build or diagnostic dump is needed. Detailed run evidence is in [verification](verification.md).
+Earlier HTTPS checks called all eight tools, checked 53-tool discovery and credential revocation, and used the pinned stdio bridge 0.5.1 over trusted TLS. No live financial/provider operation, account refresh, update/status test, build or diagnostic dump was needed. Historical run evidence is in [verification](verification.md).
 
 Remaining release verification includes minimum/current WordPress and adapter combinations, actual multisite installations/network policies, real registered analytics/enquiry/recommendation products, very large listing scopes up to the advertised scan budget, restricted host configurations and the complete PRD matrix. Focused local results are not certification of these environments.

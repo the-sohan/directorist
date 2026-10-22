@@ -69,22 +69,19 @@ The `DirectoristMcp` namespace contains factories and helpers, never credential 
 3. Bind the named callback and keep capability/object checks in the feature's authorization strategy or native policy service. Discovery never grants execution permission.
 4. Reuse the shared runner and guards. Do not add alternate execution routes or bypass per-item bulk checks.
 5. For an extension, continue using [extension API 1](extensions.md) and the existing registration hook. Installing an extension does not automatically expose tools.
-6. Run the relevant domain suite and the contract test. A deliberate schema change requires reviewing the stored contract fixture and PRD together.
+6. Exercise the affected tools manually, including permission failures, previews, stale-state rejection, and safe retries. Review public schemas, response fields, and compatibility whenever a contract changes.
 
 ## Verification
 
-Run the stateful WordPress suites sequentially on a disposable local test site:
+Use a disposable local test site to exercise discovery, reads, previews, confirmed writes, denied access, stale state, and duplicate retries. Compare the results with native Directorist administration and frontend behavior. The [complete extension example](extension-tool-example.md#read-preview-and-execute) demonstrates the manual request flow.
+
+Run focused PHP syntax and coding-standard checks for changed implementation files:
 
 ```sh
-wp eval-file tests/wp-cli/directorist-mcp.php
-wp eval-file tests/wp-cli/directorist-mcp-orders-extensions.php
-wp eval-file tests/wp-cli/directorist-mcp-dashboard-health.php
-wp eval-file tests/wp-cli/directorist-mcp-refactor.php
-node --test tests/js/directorist-mcp-refactor.test.cjs tests/js/directorist-mcp-packaging.test.cjs
 vendor/bin/phpcs --standard=phpcs.xml includes/modules/mcp
 ```
 
-Local installations may require their configured PHP MySQL socket. The fixtures restore their settings and disposable data. The read-only refactor contract suite checks the original tool schemas, ordering, public PHP signatures/constants, callback coverage, repeated initialization and shipped asset dependencies.
+The MCP automated test suites and fixtures are not included in this branch. Historical results in the verification record describe checks performed before their removal.
 
 See the [feasibility report](settings-panel-refactor-feasibility.md) for settings integration risks and the [verification record](verification.md) for observed checks and remaining release gates.
 

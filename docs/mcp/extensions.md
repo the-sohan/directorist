@@ -21,13 +21,11 @@ Schemas use explicit types, closed object properties, string bounds/enums and ar
 
 Core wraps read/preview/dispatch database access. Reads/previews reject SQL writes, nested MCP mutations and external writes. Dispatch permits the declared external action while prohibiting local product writes; the native writer runs separately. These guards cover cooperating WordPress paths, not malicious PHP using independent connections/files/network APIs. Integrations must validate native policy and pass contract tests.
 
-## Runnable developer kit
+## Complete developer example
 
-The controlled fixture at tests/fixtures/mcp-extension.php supplies a reader, confirmed editor, opt-in bulk tool, additional restriction, settings/listing/taxonomy/order fields, builder widget contract, native order-item quote, fake refund provider and generic external-effect tool. It is not loaded or activated in production.
+Follow the [complete extension tool example](extension-tool-example.md) to create a normal development plugin with an owner descriptor, a read tool, and a confirmed write tool. The full PHP source is included once in the Markdown guide, together with installation steps, schemas, permission callbacks, and manual MCP requests. Directorist does not install or activate the example automatically.
 
-For a disposable local development plugin, include the fixture and call directorist_mcp_register_fixture(registry, state, plugin_basename(__FILE__)) from the registration action. The state object needs active, option, dispatches, reconciliations, timeout, settlement, external_dispatches, external_reconciliations and external_timeout. Use an isolated option prefix, set active:true and initialize counters to zero; settlement is pending or settled. The fixture provider never contacts a real gateway. Its code is a contract example, not a production integration.
-
-A real installed plugin should instead declare its own owner, schema, native adapters and effective permissions. Never hard-code manage_options for purchaser-owned objects merely because the fixture uses administrator-only demonstration tools.
+A real installed plugin should declare its own owner, schema, native adapters and effective permissions. Use object-specific permissions for purchaser-owned or listing-owned features; the example's administrator-only policy applies to its site-wide notice setting.
 
 ## Domain field and widget adapters
 
@@ -60,7 +58,7 @@ Declare every custom table and use transactional InnoDB storage for database uni
 
 API major 1 preserves the legacy settings hook and existing restrictive hooks. Installed extensions are not automatically certified. Publish extension/API/core/adapter versions and increment contract_version when schema, policy or callback behavior changes. No plugin activation, role grant, data migration, credential store or alternate server is introduced.
 
-Run tests/wp-cli/directorist-mcp-orders-extensions.php on a local test site. The fixture suite covers permissions, schemas, native fields/widgets/items, previews, denied/unknown writes, stale state, duplicate retries, bulk outcomes, lifecycle invalidation, alternate ability entry, fake external settlement/timeout and native reconciliation proofs. Real gateways and the full cross-provider/client/concurrency matrix remain release gates.
+On a disposable local site, manually exercise the extension example, permissions, schemas, native field/widget/item adapters, previews, denied writes, stale state, duplicate retries, bulk outcomes, lifecycle invalidation and alternate ability entry. External operations require a sandbox provider to check pending/unknown outcomes and native reconciliation proofs. The automated MCP fixtures are not included in this branch. Real gateways and the full cross-provider/client/concurrency matrix remain release gates.
 
 ## Dashboard and Site Health read contributions
 
