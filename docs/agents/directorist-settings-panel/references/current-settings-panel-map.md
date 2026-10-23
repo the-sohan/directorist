@@ -61,6 +61,8 @@ The right-side modal is portaled to document.body, traps focus, restores prior b
 
 Browser checks on 2026-10-18 covered root navigation/deep links, Configure visibility, tabs, local dummy-credential snippets, password cleanup, Escape and focus return. Future changes should also test unrelated unsaved settings alongside the immediate toggle.
 
+Verified on 2026-10-23: `Tool_Providers\Settings\Settings_Schema::registry()` builds the complete native settings panel before filtering requested keys. The panel's role choices call `get_editable_roles()`, which is defined in `wp-admin/includes/user.php` and is not loaded by ordinary REST requests. The registry conditionally loads that dependency when the function is missing. Verify this path through the actual Directorist MCP server: discover a setting, read its original value, preview and commit a temporary update, read it back, then preview and commit restoration and verify the original value. A WP-CLI-only check can conceal the missing REST dependency because WP-CLI loads admin helpers.
+
 ## Connected Systems
 
 Settings values are read throughout Directorist. Treat these areas as connected when changing settings:

@@ -16,6 +16,11 @@ defined( 'ABSPATH' ) || exit;
 class Settings_Schema {
     /** Registry. */
     public static function registry(): array {
+        // REST requests do not load the admin helper used by the panel's role choices.
+        if ( ! function_exists( 'get_editable_roles' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/user.php';
+        }
+
         $panel   = new \ATBDP_Settings_Panel();
         $core    = [];
         $capture = static function ( $fields ) use ( &$core, $panel ) {
