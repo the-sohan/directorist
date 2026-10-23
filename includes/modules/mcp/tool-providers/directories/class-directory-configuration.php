@@ -41,7 +41,8 @@ class Directory_Configuration {
             if ( 'import_export' === $key ) {
                 continue;
             }
-            $values[ $key ] = metadata_exists( 'term', $id, $key ) ? get_term_meta( $id, $key, true ) : self::default_value( $definition );
+            $value          = metadata_exists( 'term', $id, $key ) ? get_term_meta( $id, $key, true ) : self::default_value( $definition );
+            $values[ $key ] = self::normalize_value( $value, $definition );
         }
         return $values;
     }
@@ -54,7 +55,7 @@ class Directory_Configuration {
      */
     public static function default_value( array $definition ) {
         if ( ! empty( $definition['value'] ) || ( array_key_exists( 'value', $definition ) && 'card-builder' !== ( $definition['type'] ?? '' ) ) ) {
-            $value = $definition['value'];
+            $value = self::normalize_value( $definition['value'], $definition );
             if ( is_array( $value ) && isset( $value['fields'] ) ) {
                 foreach ( $value['fields'] as $id => &$field ) {
                     $field['widget_key'] = $field['widget_key'] ?? $id;
@@ -71,6 +72,20 @@ class Directory_Configuration {
             return self::layout_default( $definition['layout'], Builder_Schema::widgets( $definition ), true );
         }
         return null;
+    }
+
+    /**
+     * Expand the native empty form default without rewriting stored metadata.
+     *
+     * @param mixed $value Configuration value.
+     * @param array $definition Registered descriptor.
+     * @return mixed Normalized configuration value.
+     */
+    public static function normalize_value( $value, array $definition ) {
+        if ( 'form-builder' === ( $definition['type'] ?? '' ) && [] === $value ) {
+            return [ 'fields' => [], 'groups' => [] ];
+        }
+        return $value;
     }
 
     /**

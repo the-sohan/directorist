@@ -41,9 +41,10 @@ class Builder_Operations {
             $values[ $key ] = is_string( $value ) ? Validation::clean_text( $value ) : $value;
             return;
         }
-        $config  = (array) $values[ $key ];
+        $config  = (array) Directory_Configuration::normalize_value( $values[ $key ], $definition );
         $widgets = Builder_Schema::widgets( $definition );
-        if ( isset( $config['groups'], $config['fields'] ) ) {
+        if ( 'form-builder' === ( $definition['type'] ?? '' ) ) {
+            Validation::check( isset( $config['groups'], $config['fields'] ) && is_array( $config['groups'] ) && is_array( $config['fields'] ), __( 'This form builder configuration must contain fields and groups.', 'directorist' ) );
             self::form_operation( $config, $op, $widgets );
         } else {
             self::layout_operation( $config, $op, $widgets, $definition );
@@ -191,6 +192,9 @@ class Builder_Operations {
         foreach ( $changes as $key => $value ) {
             Validation::check( $new || ! in_array( $key, [ 'field_key', 'type' ], true ) || $value === ( $widget[ $key ] ?? null ), __( 'Existing field storage keys and types cannot be changed.', 'directorist' ) );
             $schema = isset( $options[ $key ] ) ? Settings_Schema::field_schema( $options[ $key ] ) : [ 'type' => 'string' ];
+            if ( 'icon' === ( $options[ $key ]['type'] ?? '' ) ) {
+                $schema = [ 'type' => 'string' ];
+            }
             if ( 'conditional_logic' === $key ) {
                 $schema = Builder_Schema::conditional_schema();
             }

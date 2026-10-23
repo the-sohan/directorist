@@ -131,3 +131,22 @@ The [review report](refactor-review.md) records four reproduced/fixed UI issues:
 The real authenticated settings page passed success/failure save checks, deep-link/reload behavior, all client tabs/snippets, copy feedback, credential clearing, keyboard/focus handling and responsive layout. Disposable records created through MCP appeared in the native directory builder, listing, category/location/tag and unpaid-order screens. Native dashboard figures matched MCP output; native Site Health Info and the HTTPS diagnostic tools were checked. The four PHP suites passed **819 assertions** and the UI/packaging suite passed **16 tests**. Verified HTTPS/bridge, internal-reference and original-preview/retry compatibility checks also passed.
 
 Test data, temporary accounts/credentials, browser tabs and viewport overrides were cleaned up. Original enablement, unrelated settings, preview epoch and the cleanup schedule were preserved. Actual third-party AI clients, live gateways and every extension/multisite combination remain outside this local review.
+
+## Empty single listing builder — 23 October 2026
+
+The Car directory exposed a native `form-builder` configuration whose value was `[]`. MCP dispatched operations by the presence of `fields` and `groups`, routing the empty form to the card-layout handler. Adding its first section failed with `This configuration contains layout widgets.`
+
+Empty registered form builders now expand to `fields` and `groups` in memory for defaults, discovery and editing. Dispatch uses the registered builder type and validates the form structure. Existing populated values and card layouts are retained; reading does not migrate stored metadata. A follow-up MCP preview also exposed rejection of registered icon options. Builder icon options now validate as strings, without expanding the global settings registry.
+
+Observed checks through the connected Directorist MCP server:
+
+- `directorist_get_builder_schema` exposed the normalized empty content configuration with an unchanged directory version and header.
+- `directorist_update_builder` with `dry_run: true` successfully added the first section, then previewed the complete layout. Reading before execution confirmed that previews had not changed the directory configuration or version.
+- Invalid section operations on the header, widget-slot operations on content, and unknown submission-field references were rejected.
+- The reviewed layout committed with a confirmation token, expected version and idempotency key. `directorist_get_directory` and schema discovery confirmed six ordered sections and 29 fields. Every field belongs to exactly one section and references an existing submission field of the same widget type.
+- Only `single_listings_contents` changed. Submission, search, cards, header and other directory configuration remained unchanged. Preview/readback differences were limited to native label escaping and disabled toggles becoming empty strings.
+- Updating existing content and header widgets to their current values produced a successful preview with no changes. String icon options succeeded; an object icon value was rejected.
+
+The Car layout contains vehicle overview, specifications, mileage/history, equipment/safety, walkaround video, and seller/viewing-location sections. Title, highlights, price, make, city and photos remain in the existing header. No browser, direct REST, database or CLI alternative was used to configure or verify the directory. There are no Car listings yet, so these checks establish saved builder configuration rather than visual rendering of a populated listing.
+
+Both changed PHP files passed syntax checks on PHP 7.4 and PHP 8.0; `git diff --check` passed. The historical suites above are absent from this branch and were not rerun. No build, migration, commit or push was performed.
