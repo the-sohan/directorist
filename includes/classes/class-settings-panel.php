@@ -3595,6 +3595,16 @@ Please remember that your order may be canceled if you do not make your payment 
                         'label'       => __( 'Admin Email Body', 'directorist' ),
                         'value'       => ATBDP()->email->get_listing_deleted_admin_tmpl(),
                     ],
+                    'email_sub_renewed_listing_admin' => [
+                        'type'        => 'text',
+                        'label'       => __( 'Admin Email Subject', 'directorist' ),
+                        'value'       => __( '[==SITE_NAME==] The Listing #==LISTING_ID== has been renewed on your website', 'directorist' ),
+                    ],
+                    'email_tmpl_renewed_listing_admin' => [
+                        'type'        => 'textarea',
+                        'label'       => __( 'Admin Email Body', 'directorist' ),
+                        'value'       => ATBDP()->email->get_listing_renewed_admin_tmpl(),
+                    ],
                     'email_sub_new_order_admin' => [
                         'type'        => 'text',
                         'label'       => __( 'Admin Email Subject', 'directorist' ),
