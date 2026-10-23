@@ -43,6 +43,9 @@ class Read_Callbacks {
             $config = array_intersect_key( $config, array_flip( Directory_Configuration::AREAS[ $area ] ) );
         }
         $result = Directory_Configuration::summary( get_term( $id, ATBDP_DIRECTORY_TYPE ) ) + [ 'configuration' => $config, 'version' => Directory_Configuration::version( $id ) ];
+        if ( ! $area || 'general' === $area ) {
+            $result['default_preview_image_url'] = (string) \Directorist\Helper::default_preview_image_src( $id );
+        }
         if ( 'get-builder-schema' === $tool ) {
             $result['schemas'] = [];
             foreach ( $config as $key => $value ) {
@@ -54,6 +57,9 @@ class Read_Callbacks {
                     'slots'     => Builder_Schema::slots( (array) $value, $definition ),
                     'templates' => array_keys( $definition['card_templates'] ?? [] )
                 ];
+                if ( 'preview_image' === $key ) {
+                    $result['schemas'][ $key ]['options'] = [ 'type' => 'integer', 'minimum' => 0, 'description' => __( 'Set an authorized image attachment ID through update-directory; 0 clears it. Reads return the native stored URL.', 'directorist' ) ];
+                }
             }
             $result['operation_contract'] = [
                 'configuration' => 'Native configuration key in the selected area.',

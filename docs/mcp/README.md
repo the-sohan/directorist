@@ -4,7 +4,7 @@ Developer entry point: [class-init.php](../../includes/modules/mcp/class-init.ph
 
 Extension developers can follow the [complete tool registration example](extension-tool-example.md), including a runnable plugin and read, preview, execute, and retry requests. See the [extension API reference](extensions.md) for the full registration and adapter contracts.
 
-Directorist exposes 53 core tools for settings, directory configuration, listings, listing taxonomies, orders, dashboard data, Site Health Info and integration discovery, plus explicitly registered extension tools. See [dashboard and Site Health](dashboard-health.md) for read contracts, privacy, extension adapters and supported bounds. The feature ships in core and defaults to disabled. Connecting uses the user's existing WordPress capabilities.
+Directorist exposes 56 core tools for settings, directory configuration, listings, listing taxonomies, orders, media, dashboard data, Site Health Info and integration discovery, plus explicitly registered extension tools. See [dashboard and Site Health](dashboard-health.md) for read contracts, privacy, extension adapters and supported bounds. The feature ships in core and defaults to disabled. Connecting uses the user's existing WordPress capabilities.
 
 ## Enable and connect
 
@@ -18,7 +18,7 @@ Directorist exposes 53 core tools for settings, directory configuration, listing
 
 The drawer includes Claude Code, Claude Desktop, Cursor, Codex and Other examples. These examples do not certify every desktop release. The Claude Desktop example pins **@automattic/mcp-wordpress-remote@0.5.1**, requiring Node.js 18+. That bridge was verified with Node.js 22, application passwords and a custom endpoint over verified TLS. Authentication variables follow the [official bridge documentation](https://github.com/Automattic/mcp-wordpress-remote).
 
-OAuth-only connections, automatic charging/capture, subscription lifecycle mutations, arbitrary code/database access, remote uploads and permanent listing/order/ledger deletion remain outside this release. Authorized offline recording and registered refund workflows follow the [order contract](orders.md).
+OAuth-only connections, automatic charging/capture, subscription lifecycle mutations, arbitrary code/database access, non-image uploads and permanent listing/order/ledger deletion remain outside this release. Authorized offline recording and registered refund workflows follow the [order contract](orders.md).
 
 ### Troubleshooting
 
@@ -48,6 +48,7 @@ Abilities use **directorist/action**; HTTP names use **directorist-action**. Cat
 | Listings | list-listings, get-listing, get-listing-schema, create-listing, update-listing, change-listing-status, trash-listing, restore-listing, bulk-listings |
 | Taxonomies | list-taxonomies, list-terms, get-term, create-term, update-term, delete-term, bulk-terms |
 | Orders | get-order-schema, list-orders, get-order, create-order, update-order, change-order-status, cancel-order, record-order-payment, list-order-payments, list-order-refunds, create-order-refund, bulk-orders, get-order-operation |
+| Media | get-media, upload-media, import-media |
 | Integrations | list-mcp-extensions; registered owner-action tools and explicitly opted-in bulk/external-operation readers |
 
 Pagination defaults to 20, capped at 100. Bulk accepts 1–50 explicit items, one action, unique client_ref values and one taxonomy for term batches. Nested batches and implicit cross-item references are rejected.
@@ -63,7 +64,7 @@ Successful responses include success, committed and idempotent_replay. Bulk incl
 - Settings use selected native atbdp_option keys and existing save hooks. Secrets, action controls, MCP policy and arbitrary options are excluded. Unsupported structured settings are read-only.
 - Builder discovery returns widgets, options, sections, templates and slot constraints. Fields receive stable storage keys. Cards/headers use populated native widget records and enforce slot capacity. Removal preserves listing values; unknown references and conditional cycles fail validation.
 - Listings use native validation, consents, status policy and hooks. Partial edits retain unrelated data. Ownership, featured status, expiration and entitlement overrides are rejected.
-- Images accept existing authorized attachment IDs. File fields accept an authorized attachment ID or 0 to remove the reference; reads return the native stored URL. Type/size constraints apply. Native temporary-upload moving/deletion is not invoked for existing file references.
+- Image assignments accept existing authorized attachment IDs, including attachments created by the [media tools](media.md). Directory `preview_image` accepts an image attachment ID or 0 to clear it; MCP resolves the authorized ID to the native URL and preserves grouped general settings. Directory reads return the stored URL and `default_preview_image_url` from the native listing-image resolver. File fields accept an authorized attachment ID or 0 to remove the reference; reads return the native stored URL. Type/size constraints apply. Native temporary-upload moving/deletion is not invoked for existing file references.
 - Categories/locations support hierarchy; tags are flat. Associations and assignments validate directory compatibility. Deletion rejects dependent listings, children and registered protection rules.
 
 ## Extension settings

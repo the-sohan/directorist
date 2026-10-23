@@ -150,3 +150,19 @@ Observed checks through the connected Directorist MCP server:
 The Car layout contains vehicle overview, specifications, mileage/history, equipment/safety, walkaround video, and seller/viewing-location sections. Title, highlights, price, make, city and photos remain in the existing header. No browser, direct REST, database or CLI alternative was used to configure or verify the directory. There are no Car listings yet, so these checks establish saved builder configuration rather than visual rendering of a populated listing.
 
 Both changed PHP files passed syntax checks on PHP 7.4 and PHP 8.0; `git diff --check` passed. The historical suites above are absent from this branch and were not rerun. No build, migration, commit or push was performed.
+
+## Image media and native directory preview — 23 October 2026
+
+The new [media contract](media.md) adds image upload/import and authorized image inspection. The directory adapter now maps an authorized preview attachment ID to its URL and reads/writes native `general_config` grouping, preserving siblings in both REST and admin request contexts. Directory reads expose the native default-image resolver result for verification.
+
+Observed checks used initialization, `tools/list` and `tools/call` against the configured Directorist MCP endpoint with its existing authentication and TLS certificate verification. No native WordPress REST media endpoints, browser actions, direct database operations or WordPress CLI calls were used to create, assign or verify media.
+
+- All three media tools appeared in protocol discovery, with read/write annotations and an open-world annotation on import.
+- A valid 68-byte PNG upload preview returned real dimensions, MIME and checksum. Invalid base64/data URIs, executable/SVG extensions, paths, MIME mismatch, decoded byte overflow and excessive pixel counts were rejected. Upload execution was not separately exercised; import exercised the shared native attachment writer.
+- Import previews rejected local/private/metadata addresses, HTTP, embedded credentials and custom ports. A non-attachment inspection was denied. Reference and directory snapshots proved that previews did not create attachments or change Car.
+- The first Unsplash request negotiated a format inconsistent with its `.jpg` filename. Reference queries confirmed no attachment before retrying. The final fixed JPEG request imported as attachment 481, 1600 × 1000 pixels, 113,261 bytes, with author credit, source page, caption and alt text. Retrying the successful execution returned the same attachment with `idempotent_replay: true`; only one matching image existed.
+- An execution-time MIME mismatch now returned its specific validation error, rather than an unknown persistence outcome. Media references remained unchanged. The new exception path releases reservations only for trusted failures before product persistence starts; uncertain persistence retains the original conservative guard.
+- Car's preview-image update was previewed and committed through MCP with a version, confirmation token and idempotency key. Both the saved URL and native `default_preview_image_url` matched attachment inspection. The file existed and its SHA-256 matched import output. Only `preview_image` changed in directory configuration; its single listing layout and other builders were preserved.
+- Clearing with attachment ID 0 previewed an empty URL; assigning a non-image was rejected. Subsequent MCP readback confirmed that those validation checks left the configured default unchanged.
+
+The ten changed/new PHP files passed syntax checks on PHP 7.4 and PHP 8.0, and focused project PHPCS with zero errors or warnings. Formatting used temporary copies and preserved every non-whitespace PHP token. QA dependencies were installed outside the repository; no project dependency files changed. The historical fixture suites remain absent. No build, commit or push was performed for this change.

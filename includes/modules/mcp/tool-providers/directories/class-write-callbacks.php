@@ -47,8 +47,12 @@ class Write_Callbacks {
                 'state'   => [ $version, $values ],
                 'confirm' => true,
                 'preview' => [ 'name' => $name, 'slug' => $slug, 'configuration_only' => true, 'version' => $version ],
-                'execute' => static function () use ( $name, $slug, $values ) {
-                    $result = Manager::add_directory( [ 'directory_name' => $name, 'fields_value' => $values ] );
+                'execute' => static function () use ( $name, $slug, $values, $id, $duplicate ) {
+                    $result = Directory_Configuration::write_values(
+                        $values, $duplicate ? $id : 0, static function ( $native_values ) use ( $name ) {
+                            return Manager::add_directory( [ 'directory_name' => $name, 'fields_value' => $native_values ] );
+                        }
+                    );
                     Validation::check( ! empty( $result['status']['success'] ), __( 'Directory creation failed.', 'directorist' ), 'operation_failed' );
                     $new_id = (int) $result['term_id'];
                     Validation::unwrap( wp_update_term( $new_id, ATBDP_DIRECTORY_TYPE, [ 'slug' => $slug ] ) );
@@ -123,7 +127,11 @@ class Write_Callbacks {
             'preview' => [ 'directory_id' => $id, 'name' => $name, 'slug' => $slug, 'changes' => $changes, 'version' => $version ],
             'execute' => static function () use ( $id, $name, $slug, $changes ) {
                 do_action( 'directorist_before_directory_type_updated' );
-                $result = Manager::update_directory( [ 'term_id' => $id, 'directory_name' => $name, 'fields_value' => $changes ] );
+                $result = Directory_Configuration::write_values(
+                    $changes, $id, static function ( $native_values ) use ( $id, $name ) {
+                        return Manager::update_directory( [ 'term_id' => $id, 'directory_name' => $name, 'fields_value' => $native_values ] );
+                    }
+                );
                 Validation::check( ! empty( $result['status']['success'] ), __( 'The builder update failed.', 'directorist' ), 'operation_failed' );
                 Validation::unwrap( wp_update_term( $id, ATBDP_DIRECTORY_TYPE, [ 'slug' => $slug ] ) );
                 return Result::result( [ 'directory_id' => $id, 'version' => Directory_Configuration::version( $id ) ] );

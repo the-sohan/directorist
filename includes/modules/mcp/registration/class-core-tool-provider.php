@@ -12,6 +12,7 @@ use Directorist\MCP\Tool_Providers\Context\Tool_Provider;
 use Directorist\MCP\Tool_Providers\Dashboard\Tool_Provider as Dashboard_Tool_Provider;
 use Directorist\MCP\Tool_Providers\Directories\Tool_Provider as Directories_Tool_Provider;
 use Directorist\MCP\Tool_Providers\Listings\Tool_Provider as Listings_Tool_Provider;
+use Directorist\MCP\Tool_Providers\Media\Tool_Provider as Media_Tool_Provider;
 use Directorist\MCP\Tool_Providers\Orders\Tool_Provider as Orders_Tool_Provider;
 use Directorist\MCP\Tool_Providers\Settings\Tool_Provider as Settings_Tool_Provider;
 use Directorist\MCP\Tool_Providers\Site_Health\Tool_Provider as Site_Health_Tool_Provider;
@@ -32,6 +33,7 @@ class Core_Tool_Provider {
             Orders_Tool_Provider::class,
             Dashboard_Tool_Provider::class,
             Site_Health_Tool_Provider::class,
+            Media_Tool_Provider::class,
             Extensions_Tool_Provider::class,
         ];
     }

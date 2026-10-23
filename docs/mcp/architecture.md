@@ -164,6 +164,10 @@ includes/modules/mcp/
 │   │   ├── class-settings-validator.php
 │   │   ├── class-tool-provider.php
 │   │   └── class-write-callbacks.php
+│   ├── media/
+│   │   ├── class-image-validation.php
+│   │   ├── class-media-callbacks.php
+│   │   └── class-tool-provider.php
 │   ├── site-health/
 │   │   ├── class-diagnostic-collector.php
 │   │   ├── class-read-callbacks.php
@@ -201,6 +205,7 @@ includes/modules/mcp/
 │   ├── class-read-contracts.php
 │   ├── class-read-support.php
 │   ├── class-result.php
+│   ├── class-uncommitted-failure.php
 │   └── class-validation.php
 ├── transport/
 │   ├── class-ability-registrar.php

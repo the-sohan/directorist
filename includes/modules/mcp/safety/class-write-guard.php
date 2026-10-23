@@ -19,6 +19,7 @@ use Directorist\MCP\Support\Canonical_Data;
 use Directorist\MCP\Support\Failure;
 use Directorist\MCP\Support\Operation_Events;
 use Directorist\MCP\Support\Result;
+use Directorist\MCP\Support\Uncommitted_Failure;
 use Directorist\MCP\Support\Validation;
 
 defined( 'ABSPATH' ) || exit;
@@ -136,6 +137,12 @@ class Write_Guard {
         } catch ( \Throwable $error ) {
             if ( self::$mutating ) {
                 self::$mutating = false;
+                if ( $error instanceof Uncommitted_Failure ) {
+                    // A trusted writer proved that persistence never started.
+                    delete_option( self::$active_key );
+                    Operation_Events::event( $tool, 'rejected', $args, $error->reason );
+                    throw $error;
+                }
                 // Keep the running reservation: never blindly repeat a possibly committed action.
                 Operation_Events::event( $tool, 'indeterminate', $args, 'outcome_unknown' );
                 throw new Failure( 'outcome_unknown', __( 'The operation did not finish cleanly and may have committed. Read the target before retrying.', 'directorist' ), [ 'committed' => 'unknown', 'request_id' => Request_Context::request_id() ] );
@@ -200,6 +207,9 @@ class Write_Guard {
         }
         if ( isset( $result['order_id'] ) ) {
             Order_Policy::get( (int) $result['order_id'] );
+        }
+        if ( isset( $result['attachment_id'] ) ) {
+            Access_Control::attachment( (int) $result['attachment_id'], true );
         }
         // Re-evaluate current field permissions; never replay an old private value snapshot.
         if ( isset( $result['listing_id'] ) ) {

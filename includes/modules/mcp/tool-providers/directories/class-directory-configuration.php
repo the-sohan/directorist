@@ -36,15 +36,58 @@ class Directory_Configuration {
      * @param int $id Id.
      */
     public static function configuration( int $id ): array {
-        $values = [];
-        foreach ( self::definitions() as $key => $definition ) {
+        $definitions = self::definitions();
+        $general     = (array) get_term_meta( $id, 'general_config', true );
+        $group_keys  = Manager::$config['fields_group']['general_config'] ?? [];
+        $values      = [];
+        foreach ( $definitions as $key => $definition ) {
             if ( 'import_export' === $key ) {
                 continue;
             }
-            $value          = metadata_exists( 'term', $id, $key ) ? get_term_meta( $id, $key, true ) : self::default_value( $definition );
+            $value          = in_array( $key, $group_keys, true ) && array_key_exists( $key, $general ) ? $general[ $key ] : ( metadata_exists( 'term', $id, $key ) ? get_term_meta( $id, $key, true ) : self::default_value( $definition ) );
             $values[ $key ] = self::normalize_value( $value, $definition );
         }
         return $values;
+    }
+
+    /**
+     * Pass native grouped values to a directory writer in REST and admin alike.
+     *
+     * @param array $values Changed configuration values.
+     * @param int $id Existing/source directory, or zero for creation.
+     * @param callable $write Native directory writer.
+     */
+    public static function write_values( array $values, int $id, callable $write ): array {
+        self::definitions();
+        $general = $id ? (array) get_term_meta( $id, 'general_config', true ) : [];
+        $keys    = Manager::$config['fields_group']['general_config'] ?? [];
+        foreach ( $keys as $key ) {
+            if ( ! is_string( $key ) ) {
+                continue;
+            }
+            if ( array_key_exists( $key, $values ) ) {
+                $general[ $key ] = $values[ $key ];
+                unset( $values[ $key ] );
+            } elseif ( ! array_key_exists( $key, $general ) && $id && metadata_exists( 'term', $id, $key ) ) {
+                $general[ $key ] = get_term_meta( $id, $key, true );
+            }
+        }
+        if ( ! $general && ! ( $id && metadata_exists( 'term', $id, 'general_config' ) ) ) {
+            return $write( $values );
+        }
+        // The native grouping filter is admin-only and otherwise clears omitted
+        // siblings. Supply the merged group at the native writer boundary.
+        $preserve                 = static function ( $fields ) use ( $general ) {
+            $fields['general_config'] = $general;
+            return $fields;
+        };
+        $values['general_config'] = $general;
+        add_filter( 'cptm_fields_before_update', $preserve, PHP_INT_MAX );
+        try {
+            return $write( $values );
+        } finally {
+            remove_filter( 'cptm_fields_before_update', $preserve, PHP_INT_MAX );
+        }
     }
 
     /**
@@ -171,8 +214,12 @@ class Directory_Configuration {
         Validation::allowed( $changes, self::AREAS['general'] );
         foreach ( $changes as $key => &$value ) {
             if ( 'preview_image' === $key ) {
-                if ( $value ) {
-                    Access_Control::attachment( $value, true );
+                if ( 0 === $value || '' === $value ) {
+                    $value = '';
+                } else {
+                    $id    = Access_Control::attachment( $value, true );
+                    $value = wp_get_attachment_url( $id );
+                    Validation::check( is_string( $value ) && '' !== $value, __( 'The image attachment URL is unavailable.', 'directorist' ) );
                 }
                 continue;
             }

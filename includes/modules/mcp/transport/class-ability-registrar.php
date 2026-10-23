@@ -49,7 +49,7 @@ class Ability_Registrar {
                     'execute_callback'    => static function ( $args = [] ) use ( $name ) {
                         return Tool_Runner::execute( $name, (array) $args );
                     },
-                    'meta'                => [ 'show_in_rest' => true, 'mcp' => [ 'public' => true ], 'annotations' => [ 'readOnlyHint' => ! $definition['write'], 'destructiveHint' => $definition['write'], 'idempotentHint' => ! $definition['write'], 'openWorldHint' => ! empty( $definition['external_effects'] ) || in_array( $name, [ 'create-order-refund', 'get-order-operation' ], true ) ] ],
+                    'meta'                => [ 'show_in_rest' => true, 'mcp' => [ 'public' => true ], 'annotations' => [ 'readOnlyHint' => ! $definition['write'], 'destructiveHint' => $definition['write'], 'idempotentHint' => ! $definition['write'], 'openWorldHint' => ! empty( $definition['external_effects'] ) || in_array( $name, [ 'create-order-refund', 'get-order-operation', 'import-media' ], true ) ] ],
                 ] + ( isset( $definition['output_schema'] ) ? [ 'output_schema' => Tool_Registry::ability_output_schema( $definition ) ] : [] )
             );
         }
