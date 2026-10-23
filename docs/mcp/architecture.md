@@ -81,7 +81,9 @@ Run focused PHP syntax and coding-standard checks for changed implementation fil
 vendor/bin/phpcs --standard=phpcs.xml includes/modules/mcp
 ```
 
-The MCP automated test suites and fixtures are not included in this branch. Historical results in the verification record describe checks performed before their removal.
+The MCP automated test suites and fixtures are not included in this branch; `/tests` is excluded from version control and distribution. Local regression checks for the builder fixes covered native search/single/card rendering, submission defaults, editable display modes, source references, section widgets, reordering, header widgets, all card templates and custom page selection. Historical results in the verification record describe checks performed before the earlier suites were removed.
+
+Builder operations infer a submission source for a new search or layout widget when exactly one matching field exists, or its ID matches a source field. With multiple matching fields, provide `changes.original_widget_key` using the submission field ID. Explicit links must match the widget type. Add standalone single-listing widgets such as `author_info` and `related_listings` with `entity: "section"` and `widget` set to their native widget name; their options are updated through the section ID. Normal sections receive native `section_id` values for shortcode use. Reorder operations require every sibling ID in `order`, and field reorders also require the target `section_id`.
 
 See the [feasibility report](settings-panel-refactor-feasibility.md) for settings integration risks and the [verification record](verification.md) for observed checks and remaining release gates.
 

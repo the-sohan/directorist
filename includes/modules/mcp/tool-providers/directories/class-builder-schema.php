@@ -8,6 +8,7 @@
 namespace Directorist\MCP\Tool_Providers\Directories;
 
 use Directorist\MCP\Registration\Tool_Registry;
+use Directorist\MCP\Tool_Providers\Settings\Settings_Schema;
 use Directorist\MCP\Support\Validation;
 
 
@@ -15,6 +16,19 @@ defined( 'ABSPATH' ) || exit;
 
 /** Builder Schema. */
 class Builder_Schema {
+    /**
+     * Schema for a top-level builder option.
+     *
+     * @param string $key Configuration key.
+     * @param array $definition Native field definition.
+     */
+    public static function option_schema( string $key, array $definition ): ?array {
+        if ( 'single_listing_page' === $key && 'select-api' === ( $definition['type'] ?? '' ) ) {
+            return [ 'type' => 'integer', 'minimum' => 0 ];
+        }
+        return Settings_Schema::field_schema( $definition );
+    }
+
     /**
      * Sections.
      *

@@ -31,7 +31,7 @@ class Builder_Operations {
         Validation::check( in_array( $action, [ 'add', 'update', 'move', 'reorder', 'remove' ], true ), __( 'Unsupported builder action.', 'directorist' ) );
         $definition = Directory_Configuration::definitions()[ $key ];
         if ( 'options' === ( $op['entity'] ?? '' ) ) {
-            $schema = Settings_Schema::field_schema( $definition );
+            $schema = Builder_Schema::option_schema( $key, $definition );
             Validation::check( null !== $schema && 'update' === $action, __( 'This builder option is not writable.', 'directorist' ), 'unsupported_operation' );
             $value = $op['changes']['value'] ?? null;
             Validation::unwrap( rest_validate_value_from_schema( $value, $schema ) );
@@ -43,13 +43,86 @@ class Builder_Operations {
         }
         $config  = (array) Directory_Configuration::normalize_value( $values[ $key ], $definition );
         $widgets = Builder_Schema::widgets( $definition );
+        $name = $op['widget'] ?? '';
+        if ( 'update' === $action && isset( $op['changes']['original_widget_key'] ) ) {
+            $name = $config['fields'][ $op['id'] ?? '' ]['widget_name'] ?? '';
+            if ( isset( $op['slot'] ) && is_array( $op['slot'] ) ) {
+                $slot = $config;
+                foreach ( $op['slot'] as $segment ) {
+                    $slot = $slot[ $segment ] ?? [];
+                }
+                foreach ( $slot as $widget ) {
+                    if ( ( $widget['widget_key'] ?? '' ) === ( $op['id'] ?? '' ) ) {
+                        $name = $widget['widget_name'];
+                    }
+                }
+            }
+        }
+        if ( isset( $widgets[ $name ] ) && ( 'add' === $action || isset( $op['changes']['original_widget_key'] ) ) ) {
+            $op = self::bind_source( $values, $key, $op, $name, $widgets[ $name ] );
+        }
         if ( 'form-builder' === ( $definition['type'] ?? '' ) ) {
             Validation::check( isset( $config['groups'], $config['fields'] ) && is_array( $config['groups'] ) && is_array( $config['fields'] ), __( 'This form builder configuration must contain fields and groups.', 'directorist' ) );
-            self::form_operation( $config, $op, $widgets );
+            self::form_operation( $config, $op, $widgets, $definition );
         } else {
             self::layout_operation( $config, $op, $widgets, $definition );
         }
         $values[ $key ] = $config;
+    }
+
+    /**
+     * Resolve the submission field consumed by native search and layout renderers.
+     *
+     * @param array $values Directory configuration.
+     * @param string $key Target configuration key.
+     * @param array $op Builder operation.
+     * @param string $name Widget name.
+     * @param array $widget Widget definition.
+     */
+    private static function bind_source( array $values, string $key, array $op, string $name, array $widget ): array {
+        if ( ! in_array( $op['entity'] ?? '', [ 'field', 'widget' ], true ) ) {
+            return $op;
+        }
+        if ( 'single_listing_header' === $key && in_array( $name, [ 'title', 'back', 'slider' ], true ) ) {
+            Validation::check( ! isset( $op['id'] ) || $name === $op['id'], __( 'This header widget must use its native widget name as its ID.', 'directorist' ) );
+        }
+        $source_name = '';
+        if ( ( 'search_form_fields' === $key && 'available_widgets' === ( $widget['widget_group'] ?? '' ) ) || ( 'single_listings_contents' === $key && 'preset_widgets' === ( $widget['widget_group'] ?? '' ) ) ) {
+            $source_name = $name;
+        } elseif ( 'submission_form_fields.value.fields' === ( $widget['show_if']['where'] ?? '' ) ) {
+            foreach ( $widget['show_if']['conditions'] ?? [] as $condition ) {
+                if ( '_any.widget_name' === ( $condition['key'] ?? '' ) && '=' === ( $condition['compare'] ?? '' ) ) {
+                    $source_name = $condition['value'];
+                    break;
+                }
+            }
+        }
+        if ( ! $source_name ) {
+            return $op;
+        }
+        $fields  = $values['submission_form_fields']['fields'] ?? [];
+        $matches = array_keys( array_filter( $fields, static function ( $field ) use ( $source_name ) {
+            return $source_name === ( $field['widget_name'] ?? '' );
+        } ) );
+        $source = $op['changes']['original_widget_key'] ?? null;
+        if ( null === $source ) {
+            if ( in_array( $op['id'] ?? '', $matches, true ) ) {
+                $source = $op['id'];
+            } else {
+                Validation::check( 1 === count( $matches ), __( 'Select original_widget_key from the matching submission fields; the source is missing or ambiguous.', 'directorist' ) );
+                $source = $matches[0];
+            }
+        }
+        Validation::check( in_array( $source, $matches, true ), __( 'original_widget_key must reference a submission field of the matching widget type.', 'directorist' ) );
+        $op['changes']['original_widget_key'] = $source;
+        if ( ! isset( $op['changes']['label'] ) && false !== ( $widget['options']['label']['sync'] ?? true ) ) {
+            $op['changes']['label'] = $fields[ $source ]['label'] ?? $widget['label'] ?? $name;
+        }
+        if ( 'single_listing_header' === $key && 'button' === $name ) {
+            Validation::check( ! isset( $op['id'] ) || $source === $op['id'], __( 'A header button must use its submission field ID.', 'directorist' ) );
+            $op['id'] = $source;
+        }
+        return $op;
     }
 
     /**
@@ -58,8 +131,9 @@ class Builder_Operations {
      * @param array $config Config.
      * @param array $op Op.
      * @param array $widgets Widgets.
+     * @param array $definition Native form definition.
      */
-    public static function form_operation( array &$config, array $op, array $widgets ): void {
+    public static function form_operation( array &$config, array $op, array $widgets, array $definition = [] ): void {
         foreach ( $config['groups'] as $index => &$group ) {
             $group['id'] = Builder_Schema::section_id( $group, $index );
         }
@@ -67,16 +141,35 @@ class Builder_Operations {
         $action = $op['action'];
         $id     = $op['id'] ?? '';
         if ( 'section' === ( $op['entity'] ?? '' ) ) {
+            if ( 'reorder' === $action ) {
+                self::reorder_objects( $config['groups'], $op['order'], 'id' );
+                return;
+            }
             if ( 'add' === $action ) {
                 $changes = Validation::object( $op['changes'] ?? [] );
-                Validation::allowed( $changes, [ 'label', 'icon', 'section_id' ] );
-                foreach ( $changes as &$value ) {
-                    $value = Validation::clean_text( $value );
-                }
-                unset( $value );
                 Validation::check( ! $id || ( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ) ), __( 'Use a stable section ID with letters, numbers, hyphens or underscores.', 'directorist' ) );
                 Validation::check( ! $id || ! in_array( $id, array_column( $config['groups'], 'id' ), true ), __( 'Section ID is already in use.', 'directorist' ) );
-                $config['groups'][] = [ 'id' => $id ?: wp_generate_uuid4(), 'type' => 'general_group', 'fields' => [] ] + $changes;
+                $id = $id ?: wp_generate_uuid4();
+                if ( isset( $op['widget'] ) ) {
+                    $name = $op['widget'];
+                    Validation::check( isset( $widgets[ $name ] ) && $widgets[ $name ]['writable'] && 'section' === ( $widgets[ $name ]['type'] ?? '' ), __( 'Select a supported section widget.', 'directorist' ) );
+                    $group = self::update_widget( self::new_widget( $name, $id, $widgets[ $name ] ), $changes, $widgets[ $name ], true );
+                } else {
+                    $advanced = array_intersect( [ 'custom_block_id', 'custom_block_classes' ], array_keys( $definition['groupFields'] ?? [] ) );
+                    Validation::allowed( $changes, array_merge( [ 'label', 'icon', 'section_id' ], $advanced ) );
+                    $group = [];
+                    foreach ( $changes as $key => $value ) {
+                        $group[ $key ] = Validation::clean_text( $value );
+                    }
+                    $group['type'] = 'general_group';
+                }
+                $group['id']     = $id;
+                $group['fields'] = [];
+                if ( isset( $definition['groupFields']['section_id'] ) ) {
+                    $group['section_id'] = $group['section_id'] ?? (string) ( max( array_merge( [ 0 ], array_map( 'intval', array_column( $config['groups'], 'section_id' ) ) ) ) + 1 );
+                    Validation::check( '' !== (string) $group['section_id'] && ! in_array( (string) $group['section_id'], array_map( 'strval', array_column( $config['groups'], 'section_id' ) ), true ), __( 'Section ID must be nonempty and unique.', 'directorist' ) );
+                }
+                $config['groups'][] = $group;
                 return;
             }
             $index = array_search( $id, array_column( $config['groups'], 'id' ), true );
@@ -86,22 +179,38 @@ class Builder_Operations {
                 array_splice( $config['groups'], $index, 1 );
             } elseif ( 'update' === $action ) {
                 $changes = Validation::object( $op['changes'] );
-                Validation::allowed( $changes, [ 'label', 'icon' ] );
-                foreach ( $changes as &$v ) {
-                    $v = Validation::clean_text( $v );
+                $group   = $config['groups'][ $index ];
+                if ( 'section' === ( $group['type'] ?? '' ) ) {
+                    $name = $group['widget_name'] ?? '';
+                    Validation::check( isset( $widgets[ $name ] ) && $widgets[ $name ]['writable'], __( 'This section widget is read-only.', 'directorist' ), 'unsupported_operation' );
+                    $group = self::update_widget( $group, $changes, $widgets[ $name ] );
+                } else {
+                    $advanced = array_intersect( [ 'custom_block_id', 'custom_block_classes' ], array_keys( $definition['groupFields'] ?? [] ) );
+                    Validation::allowed( $changes, array_merge( [ 'label', 'icon' ], $advanced ) );
+                    foreach ( $changes as $key => $value ) {
+                        $group[ $key ] = Validation::clean_text( $value );
+                    }
                 }
-                $config['groups'][ $index ] = array_replace( $config['groups'][ $index ], $changes );
-            } elseif ( 'reorder' === $action ) {
-                self::reorder_objects( $config['groups'], $op['order'], 'id' );
+                $config['groups'][ $index ] = $group;
             } else {
                 Validation::fail( 'unsupported_operation', __( 'Use section reorder to move sections.', 'directorist' ) );
             }
             return;
         }
         Validation::check( 'field' === ( $op['entity'] ?? '' ), __( 'This configuration contains fields and sections.', 'directorist' ) );
+        if ( 'reorder' === $action ) {
+            foreach ( $config['groups'] as &$group ) {
+                if ( $group['id'] === ( $op['section_id'] ?? '' ) ) {
+                    self::reorder_ids( $group['fields'], $op['order'] );
+                    return;
+                }
+            }
+            Validation::fail( 'validation_failed', __( 'Select a section to reorder.', 'directorist' ) );
+        }
         if ( 'add' === $action ) {
             $name = $op['widget'] ?? '';
             Validation::check( isset( $widgets[ $name ] ) && $widgets[ $name ]['writable'], __( 'This widget is not supported for MCP editing.', 'directorist' ), 'unsupported_operation' );
+            Validation::check( 'section' !== ( $widgets[ $name ]['type'] ?? '' ), __( 'Add this widget as a section, not as a field.', 'directorist' ) );
             $id = $id ?: $name . '-' . substr( wp_generate_uuid4(), 0, 8 );
             Validation::check( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ), __( 'Use a stable field ID with letters, numbers, hyphens or underscores.', 'directorist' ) );
             Validation::check( ! isset( $config['fields'][ $id ] ), __( 'Field ID is already in use.', 'directorist' ) );
@@ -123,15 +232,6 @@ class Builder_Operations {
                 Validation::check( ! empty( $widgets[ $name ]['canTrash'] ) && 'title' !== $name, __( 'A mandatory preset cannot be removed.', 'directorist' ) );
                 unset( $config['fields'][ $id ] );
             }
-        }
-        if ( 'reorder' === $action ) {
-            foreach ( $config['groups'] as &$group ) {
-                if ( $group['id'] === ( $op['section_id'] ?? '' ) ) {
-                    self::reorder_ids( $group['fields'], $op['order'] );
-                    return;
-                }
-            }
-            Validation::fail( 'validation_failed', __( 'Select a section to reorder.', 'directorist' ) );
         }
         if ( in_array( $action, [ 'add', 'move', 'remove' ], true ) ) {
             foreach ( $config['groups'] as &$group ) {
@@ -156,7 +256,15 @@ class Builder_Operations {
      * @param array $definition Registered descriptor.
      */
     public static function new_widget( string $name, string $id, array $definition ): array {
-        $widget = [ 'widget_name' => $name, 'widget_key' => $id, 'widget_group' => $definition['widget_group'] ?? '', 'type' => $definition['type'] ?? 'text', 'label' => $definition['label'] ?? $name ];
+        $widget = [ 'widget_name' => $name, 'widget_key' => $id, 'widget_group' => $definition['widget_group'] ?? '', 'label' => $definition['label'] ?? $name ];
+        // Search fields without a declared type render by widget_name. A fallback
+        // type would incorrectly select a numeric search template for these fields.
+        if ( isset( $definition['type'] ) ) {
+            $widget['type'] = $definition['type'];
+        }
+        if ( isset( $definition['icon'] ) ) {
+            $widget['icon'] = $definition['icon'];
+        }
         if ( isset( $definition['hook'] ) ) {
             $widget['hook'] = $definition['hook'];
         }
@@ -190,8 +298,18 @@ class Builder_Operations {
         $options = $definition['options']['fields'] ?? $definition['options'] ?? [];
         Validation::allowed( $changes, array_merge( array_keys( $options ), [ 'label', 'original_widget_key' ] ) );
         foreach ( $changes as $key => $value ) {
-            Validation::check( $new || ! in_array( $key, [ 'field_key', 'type' ], true ) || $value === ( $widget[ $key ] ?? null ), __( 'Existing field storage keys and types cannot be changed.', 'directorist' ) );
+            $hidden = 'hidden' === ( $options[ $key ]['type'] ?? '' );
+            Validation::check( ( 'field_key' !== $key && ! ( $hidden && 'label' !== $key ) ) || $value === ( $widget[ $key ] ?? null ), __( 'Field storage keys and fixed widget options cannot be changed.', 'directorist' ) );
+            if ( $hidden && 'label' !== $key ) {
+                continue;
+            }
             $schema = isset( $options[ $key ] ) ? Settings_Schema::field_schema( $options[ $key ] ) : [ 'type' => 'string' ];
+            if ( $hidden && 'label' === $key ) {
+                $schema = [ 'type' => 'string' ];
+            }
+            if ( 'number' === ( $options[ $key ]['type'] ?? '' ) && '' === ( $options[ $key ]['value'] ?? null ) ) {
+                $schema = [ 'anyOf' => [ $schema, [ 'type' => 'string', 'enum' => [ '' ] ] ] ];
+            }
             if ( 'icon' === ( $options[ $key ]['type'] ?? '' ) ) {
                 $schema = [ 'type' => 'string' ];
             }

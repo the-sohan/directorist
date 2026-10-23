@@ -52,6 +52,7 @@
 /webpack.config.js
 /webpack.legacy.dev.js
 /webpack.legacy.prod.js
+/tests
 
 # Documentation & notes
 /docs

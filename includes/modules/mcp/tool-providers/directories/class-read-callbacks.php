@@ -7,7 +7,6 @@
 
 namespace Directorist\MCP\Tool_Providers\Directories;
 
-use Directorist\MCP\Tool_Providers\Settings\Settings_Schema;
 use Directorist\MCP\Runtime\Access_Control;
 use Directorist\MCP\Support\Pagination;
 use Directorist\MCP\Support\Validation;
@@ -51,7 +50,7 @@ class Read_Callbacks {
             foreach ( $config as $key => $value ) {
                 $definition                = Directory_Configuration::definitions()[ $key ];
                 $result['schemas'][ $key ] = [
-                    'options'   => Settings_Schema::field_schema( $definition ),
+                    'options'   => Builder_Schema::option_schema( $key, $definition ),
                     'widgets'   => Builder_Schema::widgets( $definition ),
                     'sections'  => Builder_Schema::sections( (array) $value ),
                     'slots'     => Builder_Schema::slots( (array) $value, $definition ),
