@@ -177,6 +177,10 @@ class Descriptor_Validator {
                 if ( ! empty( $definition['writable'] ) ) {
                     Validation::check( is_callable( $definition['write'] ?? null ) && is_array( $definition['tables'] ?? null ) && is_callable( $definition['invalidate'] ?? null ) && ! empty( $definition['storage_adapter'] ), __( 'Writable adapters need complete persistence contracts.', 'directorist' ) );
                 }
+                if ( isset( $definition['preview_changes'] ) || isset( $definition['effects_schema'] ) ) {
+                    Validation::check( 'settings' === $domain && ! empty( $definition['writable'] ) && is_callable( $definition['preview_changes'] ?? null ), __( 'Effective previews require a writable settings adapter.', 'directorist' ) );
+                    Schema_Validator::schema( $definition['effects_schema'] ?? [] );
+                }
                 if ( 'refund_providers' === $domain ) {
                     foreach ( [ 'dispatch', 'reconcile' ] as $callback ) {
                         Validation::check( is_callable( $definition[ $callback ] ?? null ), __( 'Providers require dispatch and reconciliation.', 'directorist' ) );

@@ -63,3 +63,7 @@ On a disposable local site, manually exercise the extension example, permissions
 ## Dashboard and Site Health read contributions
 
 The additive read-adapter contract is now available as Registry::READ_ADAPTER_VERSION = 1. Use register_read_adapter for dashboard overview/metric/guidance or site_health_info sections, with explicit public classification, owner/scopes/filters, bounded schemas and read/projection/permission/availability callbacks. No writer or automatic debug_information exposure is accepted. See the [read-adapter guide](dashboard-health.md#read-adapter-api-1) for the full descriptor, core permission floors, no-cache/HTTP restrictions and examples. Existing API 1 tools/fields retain their contract.
+
+### Optional effective-policy settings preview
+
+Writable settings fields can additionally declare `preview_changes(changes)` and a closed, bounded `effects_schema`. Every field sharing a change-set store must agree on this callback/schema. Core validates the complete-store preview, returns it under `changes.effects[storage_adapter]`, and binds its content into confirmation state. Omitted callbacks retain the previous settings behavior. This allows an independent store to show configured/effective values and scheduled consequences without triggering cleanup or other product writes during preview. Directorist Analytics uses this for privacy dependencies and retention policy.

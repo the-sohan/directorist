@@ -48,6 +48,19 @@ class Write_Callbacks {
                 Validation::check( $registry[ $key ]['write'] === $writer, __( 'The store must provide one atomic change-set writer.', 'directorist' ), 'unsupported_operation' );
             }
         }
+        // Independent stores can describe effective policy changes for the complete change set.
+        $effects = [];
+        foreach ( array_unique( $adapters ) as $adapter ) {
+            $definition = $registry[ array_key_first( $normalized ) ];
+            foreach ( array_keys( $normalized ) as $key ) {
+                Validation::check( ( $registry[ $key ]['preview_changes'] ?? null ) === ( $definition['preview_changes'] ?? null ) && ( $registry[ $key ]['effects_schema'] ?? null ) === ( $definition['effects_schema'] ?? null ), __( 'The store must provide one effective change-set preview.', 'directorist' ), 'unsupported_operation' );
+            }
+            if ( isset( $definition['preview_changes'] ) ) {
+                $effect = Validation::unwrap( call_user_func( $definition['preview_changes'], $normalized ) );
+                Validation::unwrap( rest_validate_value_from_schema( $effect, $definition['effects_schema'] ) );
+                $effects[ $adapter ] = $effect;
+            }
+        }
         $dependency_state = [];
         foreach ( $changes as $key => $unused ) {
             $dependency = $registry[ $key ]['dependencies']['where'] ?? '';
@@ -62,7 +75,7 @@ class Write_Callbacks {
         // Callables are executable registration details, not serializable schema state.
         $contract = array_intersect_key( $registry, $changes );
         foreach ( $contract as &$definition ) {
-            unset( $definition['read'], $definition['write'], $definition['validate'] );
+            unset( $definition['read'], $definition['write'], $definition['validate'], $definition['preview_changes'] );
         }
         return [
             'tables'  => array_values(
@@ -75,9 +88,9 @@ class Write_Callbacks {
                     )
                 )
             ),
-            'state'   => [ $before, $dependency_state, $contract ],
+            'state'   => [ $before, $dependency_state, $contract, $effects ],
             'confirm' => true,
-            'preview' => [ 'before' => $before, 'after' => $normalized, 'version' => $version ],
+            'preview' => [ 'before' => $before, 'after' => $normalized, 'version' => $version ] + ( $effects ? [ 'effects' => $effects ] : [] ),
             'execute' => static function () use ( $registry, $normalized, $adapters ) {
                 if ( 'directorist' === reset( $adapters ) ) {
                     $panel = new \ATBDP_Settings_Panel();
