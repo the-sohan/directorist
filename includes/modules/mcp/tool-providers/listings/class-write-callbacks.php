@@ -139,7 +139,7 @@ class Write_Callbacks {
             'state'   => [ $version, $directory, $status ],
             'confirm' => $create ? 'publish' === $status : $status !== $post->post_status,
             'preview' => [ 'listing_id' => $id ?: null, 'directory_id' => $directory, 'fields' => $changes, 'effective_status' => $status, 'version' => $version ],
-            'execute' => static function () use ( $data, $create, $status, $id, $values, $definitions ) {
+            'execute' => static function () use ( $data, $create, $status, $id, $values, $definitions, $changes ) {
                 $status_filter = static function () use ( $status ) {
                     return $status;
                 };
@@ -162,7 +162,7 @@ class Write_Callbacks {
                 }
                 $new_id = (int) ( $result['id'] ?? 0 );
                 Validation::check( $new_id && ATBDP_POST_TYPE === get_post_type( $new_id ), __( 'The listing save could not be verified.', 'directorist' ), 'operation_failed' );
-                if ( isset( $definitions['images'], $values['images'] ) ) {
+                if ( isset( $definitions['images'], $values['images'] ) && array_key_exists( 'images', $changes ) ) {
                     $images = $values['images'];
                     if ( $images ) {
                         set_post_thumbnail( $new_id, $images[0] );

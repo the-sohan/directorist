@@ -889,6 +889,12 @@ class SubmissionController {
     }
 
     public static function upload_images( $listing_id, $posted_data ) {
+        // MCP validates existing attachment references. Its native adapter updates
+        // those references after submit; no temporary file or deletion work may
+        // occur inside the guarded listing transaction.
+        if ( 'mcp' === self::$from ) {
+            return;
+        }
         $image_upload_field = directorist_get_listing_form_field( $posted_data['directory_id'], 'image_upload' );
 
         if ( empty( $image_upload_field ) ) {

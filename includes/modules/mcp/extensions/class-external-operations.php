@@ -169,11 +169,12 @@ class External_Operations {
      */
     public static function read( $tool, array $args ): array {
         $record = get_option( self::key( $args['operation_id'] ) );
-        Validation::check( $record && $record['tool'] === $tool && (int) $record['actor'] === get_current_user_id(), __( 'Operation not found.', 'directorist' ), 'not_found' );
+        Validation::check( $record && $record['tool'] === $tool && ( (int) $record['actor'] === get_current_user_id() || current_user_can( 'manage_options' ) ), __( 'Operation not found.', 'directorist' ), 'not_found' );
         $definitions = Core_Tool_Provider::definitions();
         $d           = $definitions[ $tool ] ?? null;
         if ( ! $d || ! Tool_Registry::instance()->admitted( $record['owner'] ) ) {
             // Preserve a safe initiating-user tombstone without exposing the old input/result snapshot.
+            Validation::check( (int) $record['actor'] === get_current_user_id(), __( 'Operation not found.', 'directorist' ), 'not_found' );
             return [ 'success' => true, 'operation_id' => $record['operation_id'], 'state' => 'provider_unavailable', 'completed' => false, 'committed' => $record['committed'], 'external_effect' => $record['external_effect'], 'request_id' => $record['request_id'], 'next_step' => 'Restore a compatible integration to reconcile. Do not repeat the external action.' ];
         }
         try {
