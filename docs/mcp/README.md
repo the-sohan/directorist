@@ -9,7 +9,7 @@ Directorist exposes 56 core tools for settings, directory configuration, listing
 ## Enable and connect
 
 1. Use WordPress 6.9+ with the [official MCP Adapter](https://wordpress.org/plugins/mcp-adapter/) active. The integration checks for adapter 0.6.1+. A missing dependency leaves normal Directorist operation available.
-2. Open **Directorist → Settings → Other Features → MCP**. Enable the feature, then click **Configure**.
+2. Open **Directorist → Settings → Other Features → MCP**. If the adapter is missing, click **Install & Activate MCP Adapter**; if installed but inactive, click **Activate MCP Adapter**. Setup runs over AJAX, shows its current step and refreshes readiness. WordPress installation/activation permissions still apply. Enable MCP separately, then click **Configure**.
 3. The **MCP Connection** drawer shows the site-specific endpoint, prerequisites and five client tabs. Enablement saves immediately through the native nonce-protected settings endpoint. General Save changes does not overwrite the independently saved preference.
 4. Each connecting user creates a separately named WordPress application password in their own profile. Use trusted HTTPS and that user's account. The drawer fills snippets locally; credentials are never submitted by this field. A copied filled snippet contains a secret.
 5. Configure an HTTP client with an Authorization header, or a stdio bridge. The endpoint comes from WordPress rest_url( 'directorist/mcp' ), including any site subdirectory.

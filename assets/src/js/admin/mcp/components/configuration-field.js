@@ -17,6 +17,8 @@
           status: null,
           loading: false,
           saving: false,
+          installing: false,
+          installPhase: "checking",
           opened: false,
           message: "",
           error: "",
@@ -25,6 +27,14 @@
       computed: {
         ready() {
           return Boolean(this.status && this.status.ready);
+        },
+        adapterSetup() {
+          return this.status?.adapter_setup;
+        },
+        adapterLabel() {
+          return this.installing
+            ? config.adapterSetup.labels[this.installPhase]
+            : this.adapterSetup?.label;
         },
         badge() {
           return this.loading && !this.status
@@ -39,9 +49,12 @@
       created() {
         this._alive = true;
         this._api = mcp.createApiClient(config, () => this.close(false));
+        this._installer = mcp.createAdapterInstaller(config, (url, options) =>
+          this.request(url, options),
+        );
         this.refresh();
         this._refocus = () => {
-          if (this.opened) this.refresh();
+          if (this.opened && !this.installing) this.refresh();
         };
         this._navigation = () => this.close(false);
         window.addEventListener("focus", this._refocus);
@@ -90,7 +103,7 @@
           }
         },
         async toggle(next) {
-          if (this.saving || this.loading) return;
+          if (this.saving || this.loading || this.installing) return;
           this.saving = true;
           this.error = "";
           this.message = "";
@@ -132,8 +145,48 @@
           event.target.checked = this.enabled;
           return this.toggle(next);
         },
+        async setupAdapter() {
+          if (this.installing || this.loading || this.saving) return;
+          this.installing = true;
+          this.installPhase = "checking";
+          this.error = "";
+          this.message = "";
+          try {
+            // Reconcile a stale page before choosing install versus activate.
+            const current = await this.refresh();
+            if (!this._alive || !current) return;
+            if (!current.ready) {
+              await this._installer.setup(current.adapter_setup, (phase) => {
+                if (this._alive) this.installPhase = phase;
+              });
+              if (!this._alive) return;
+              this.installPhase = "checking";
+              // Activation loads the plugin in a fresh request, not this page.
+              const status = await this.refresh();
+              if (!this._alive || !status) return;
+              if (!status.ready)
+                throw new Error(
+                  status.adapter_setup?.message ||
+                    config.adapterSetup.labels.failed,
+                );
+            }
+            this.message = this.enabled
+              ? config.adapterSetup.labels.configured
+              : config.adapterSetup.labels.success;
+          } catch (error) {
+            if (this._alive && error.name !== "AbortError") {
+              // Installation can succeed while activation fails. Offer the
+              // remaining action instead of trying to install the plugin again.
+              await this.refresh();
+              if (this._alive) this.error = error.message;
+            }
+          } finally {
+            if (this._alive) this.installing = false;
+          }
+        },
         open() {
-          if (!this.enabled || this.saving || this.loading) return;
+          if (!this.enabled || this.saving || this.loading || this.installing)
+            return;
           this.message = "";
           this.opened = true;
         },
@@ -152,13 +205,17 @@
         <div class="directorist-mcp-field" ref="root" tabindex="-1">
             <div class="directorist-mcp-card">
                 <div><div class="directorist-mcp-title"><h3>{{ label || 'MCP for AI Agents' }}</h3><span class="directorist-mcp-badge" :class="{ 'is-active': enabled && ready }">{{ badge }}</span></div><p>{{ description }}</p></div>
-                <div class="directorist-mcp-actions"><button v-if="enabled" ref="configure" type="button" class="directorist-mcp-button" :disabled="saving || loading" @click="open">Configure</button>
-                    <label class="directorist-mcp-switch"><input type="checkbox" role="switch" aria-label="Enable Directorist MCP" :checked="enabled" :disabled="saving || loading || (!ready && !enabled)" @change="changeEnabled"><span aria-hidden="true"></span></label>
+                <div class="directorist-mcp-actions"><button v-if="enabled" ref="configure" type="button" class="directorist-mcp-button" :disabled="saving || loading || installing" @click="open">Configure</button>
+                    <label class="directorist-mcp-switch"><input type="checkbox" role="switch" aria-label="Enable Directorist MCP" :checked="enabled" :disabled="saving || loading || installing || (!ready && !enabled)" @change="changeEnabled"><span aria-hidden="true"></span></label>
                     <span v-if="saving" role="status">Saving…</span>
                 </div>
             </div>
-            <p v-if="!ready && !loading" class="directorist-mcp-note">WordPress 6.9+ and an active compatible WordPress MCP Adapter are required. <a :href="status ? status.adapter_url : 'https://wordpress.org/plugins/mcp-adapter/'" target="_blank" rel="noopener noreferrer">Adapter setup</a></p>
-            <p v-if="error" role="alert" class="directorist-mcp-error">{{ error }} <button type="button" class="directorist-mcp-link" @click="refresh">Retry</button></p>
+            <div v-if="!ready && status" class="directorist-mcp-setup" :aria-busy="installing ? 'true' : 'false'">
+                <p class="directorist-mcp-note">WordPress 6.9+ and an active compatible WordPress MCP Adapter are required.</p>
+                <button v-if="adapterSetup && adapterSetup.action" type="button" class="directorist-mcp-link directorist-mcp-adapter-action" :aria-label="adapterLabel" :disabled="installing || loading || saving || !adapterSetup.can_setup" @click="setupAdapter"><span v-if="installing" class="directorist-mcp-spinner" aria-hidden="true"></span><span role="status">{{ adapterLabel }}</span></button>
+                <p v-if="adapterSetup && adapterSetup.message" class="directorist-mcp-note">{{ adapterSetup.message }}</p>
+            </div>
+            <p v-if="error" role="alert" class="directorist-mcp-error">{{ error }} <button type="button" class="directorist-mcp-link" :disabled="installing || loading" @click="refresh">Retry</button></p>
             <p v-if="message && !opened" role="status">{{ message }}</p>
             <connection-drawer v-if="opened" :status="status" :enabled="enabled" :refresh-status="refresh" :error="error" @close="close" />
         </div>`,

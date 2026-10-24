@@ -33,7 +33,9 @@
             throw new Error(
               typeof data?.message === "string"
                 ? data.message
-                : "The request could not be completed.",
+                : unauthorized
+                  ? "Your session is unavailable. Refresh this page or sign in again and retry."
+                  : "The request could not be completed.",
             );
           }
           return data;

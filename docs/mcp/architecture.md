@@ -50,12 +50,13 @@ The **Registry** pattern provides one inventory, **Strategy** selects feature ca
 
 ## Connection UI without a build
 
-`admin/Assets` registers nine scripts with explicit WordPress dependencies. `assets/src/js/admin/mcp/init.js` installs the field through `DirectoristSettingsPanel`; it waits for the existing registry-ready event when needed.
+`admin/Assets` registers ten scripts with explicit WordPress dependencies. `assets/src/js/admin/mcp/init.js` installs the field through `DirectoristSettingsPanel`; it waits for the existing registry-ready event when needed.
 
 - `configuration-field.js` owns enablement, confirmed status and independent native AJAX saves.
 - `connection-drawer.js` owns the open drawer, transient credentials, template requests and feedback. Closing or destroying it clears credential inputs and cancels its requests.
 - `client-configuration.js` renders client tabs and the derived snippet. It emits selection/copy events and stores no credential state.
 - `api-client.js` owns cancellation and nonce-authenticated requests. Configuration is passed into its factory.
+- `adapter-installer.js` sequences native WordPress `install-plugin`/`activate-plugin` AJAX calls with the separate `updates` nonce. `admin/Adapter_Setup` reports installed/active state and setup permissions. The field owns the spinner and refreshes readiness after setup without changing enablement.
 - `snippets.js` constructs configuration locally; it retains no arguments/results. `clipboard.js` clears temporary fallback textareas in `finally`.
 - `modal-accessibility.js` handles keyboard trapping, background inert state and body scrolling. The field restores focus after closing.
 - `settings-panel-adapter.js` preserves the established menu/store integration and excludes only `mcp_enabled` from general settings saves.
@@ -92,6 +93,7 @@ See the [feasibility report](settings-panel-refactor-feasibility.md) for setting
 ```text
 includes/modules/mcp/
 ├── admin/
+│   ├── class-adapter-setup.php
 │   ├── class-assets.php
 │   ├── class-configuration-controller.php
 │   ├── class-connection-configuration.php
@@ -233,7 +235,9 @@ assets/src/
 ├── js/admin/mcp/
 │   ├── init.js
 │   ├── settings-panel-adapter.js
-│   ├── services/api-client.js
+│   ├── services/
+│   │   ├── api-client.js
+│   │   └── adapter-installer.js
 │   ├── utilities/
 │   │   ├── snippets.js
 │   │   ├── clipboard.js

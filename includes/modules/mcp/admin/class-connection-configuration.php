@@ -29,6 +29,7 @@ class Connection_Configuration {
             'ready'                           => Request_Context::dependencies(),
             'abilities_available'             => function_exists( 'wp_register_ability' ),
             'adapter_available'               => class_exists( '\WP\MCP\Core\McpAdapter' ),
+            'adapter_setup'                   => Adapter_Setup::status(),
             'https'                           => is_ssl() || 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME ),
             'application_passwords_available' => function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( wp_get_current_user() ),
             'endpoint_url'                    => rest_url( 'directorist/mcp' ),

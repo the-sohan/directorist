@@ -18,12 +18,13 @@ class Assets {
         }
         $scripts = [
             'api-client'             => [ 'services/api-client.js', [] ],
+            'adapter-installer'      => [ 'services/adapter-installer.js', [] ],
             'snippets'               => [ 'utilities/snippets.js', [] ],
             'clipboard'              => [ 'utilities/clipboard.js', [] ],
             'modal-accessibility'    => [ 'utilities/modal-accessibility.js', [] ],
             'client-configuration'   => [ 'components/client-configuration.js', [] ],
             'connection-drawer'      => [ 'components/connection-drawer.js', [ 'api-client', 'snippets', 'clipboard', 'modal-accessibility', 'client-configuration' ] ],
-            'configuration-field'    => [ 'components/configuration-field.js', [ 'api-client', 'connection-drawer' ] ],
+            'configuration-field'    => [ 'components/configuration-field.js', [ 'api-client', 'adapter-installer', 'connection-drawer' ] ],
             'settings-panel-adapter' => [ 'settings-panel-adapter.js', [] ],
         ];
         foreach ( $scripts as $name => $script ) {
@@ -42,6 +43,20 @@ class Assets {
                 'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
                 'ajaxNonce'    => wp_create_nonce( directorist_get_nonce_key() ),
                 'nonceKey'     => directorist_get_nonce_key(),
+                'adapterSetup' => [
+                    'nonce'  => wp_create_nonce( 'updates' ),
+                    'slug'   => 'mcp-adapter',
+                    'plugin' => Adapter_Setup::PLUGIN_FILE,
+                    'name'   => __( 'MCP Adapter', 'directorist' ),
+                    'labels' => [
+                        'installing' => __( 'Installing MCP Adapter…', 'directorist' ),
+                        'activating' => __( 'Activating MCP Adapter…', 'directorist' ),
+                        'checking'   => __( 'Checking setup…', 'directorist' ),
+                        'success'    => __( 'MCP Adapter is active. You can now enable Directorist MCP.', 'directorist' ),
+                        'configured' => __( 'MCP Adapter is active. Directorist MCP is ready to configure.', 'directorist' ),
+                        'failed'     => __( 'MCP Adapter setup could not be completed. Please retry.', 'directorist' ),
+                    ],
+                ],
             ]
         );
     }
