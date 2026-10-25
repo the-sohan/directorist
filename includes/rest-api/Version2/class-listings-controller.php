@@ -261,8 +261,18 @@ class Listings_Controller extends Legacy_Listings_Controller {
     }
 
     protected function hydrate_global_post( $request ) {
-        $directory_id = $request['directory'];
-        $plan_id      = $request['plan'];
+        if ( ! isset( $request['directory'] ) && ! empty( $request['id'] ) ) {
+            $request->set_param( 'directory', directorist_get_listing_directory( (int) $request['id'] ) );
+        }
+
+        $directory_id = $this->get_create_item_directory_id( $request );
+
+        if ( is_wp_error( $directory_id ) ) {
+            return $directory_id;
+        }
+
+        $request->set_param( 'directory', $directory_id );
+        $plan_id = $request['plan'];
 
         $form_fields           = directorist_get_listing_form_fields( $directory_id );
         $map                   = $this->get_schema_to_post_fields_map();
@@ -385,7 +395,11 @@ class Listings_Controller extends Legacy_Listings_Controller {
             return $timezone_validation;
         }
 
-        $this->hydrate_global_post( $request );
+        $hydrated = $this->hydrate_global_post( $request );
+
+        if ( is_wp_error( $hydrated ) ) {
+            return $hydrated;
+        }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing
         $controller_response = SubmissionController::submit( wp_unslash( $_POST ), 'api' );
 
@@ -430,7 +444,11 @@ class Listings_Controller extends Legacy_Listings_Controller {
             return $timezone_validation;
         }
 
-        $this->hydrate_global_post( $request );
+        $hydrated = $this->hydrate_global_post( $request );
+
+        if ( is_wp_error( $hydrated ) ) {
+            return $hydrated;
+        }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing
         $controller_response = SubmissionController::submit( wp_unslash( $_POST ), 'api' );
