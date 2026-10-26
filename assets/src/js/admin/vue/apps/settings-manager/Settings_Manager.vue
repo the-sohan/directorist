@@ -553,8 +553,10 @@ export default {
         isInactiveGatewayModeField( field ) {
             const showIf = field.showIf || field.show_if || field[ 'show-if' ];
             const modeKey = showIf && showIf.where;
+            const modeKeys = this.$store.state.config.gateway_mode_keys ||
+                [ 'stripe_gateway_test_mode', 'paypal_gateway_test_mode' ];
 
-            if ( ! [ 'stripe_gateway_test_mode', 'paypal_gateway_test_mode' ].includes( modeKey ) ) {
+            if ( ! modeKeys.includes( modeKey ) ) {
                 return false;
             }
 
