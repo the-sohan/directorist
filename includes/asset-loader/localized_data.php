@@ -421,6 +421,7 @@ class Localized_Data {
                 'total_enquiries'              => __( 'Total Enquiries', 'directorist' ),
                 'total_sent'                   => __( 'Total Sent', 'directorist' ),
                 'new_messages'                 => __( 'New Messages', 'directorist' ),
+                'new'                          => __( 'new', 'directorist' ),
                 'this_week'                    => __( 'This Week', 'directorist' ),
                 'sent_this_week'               => __( 'Sent This Week', 'directorist' ),
                 'total_resolved'               => __( 'Total Resolved', 'directorist' ),
