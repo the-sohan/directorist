@@ -2029,6 +2029,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 
 		// Custom Range Slider
+		function parseNumberRange(value) {
+			const matches =
+				typeof value === 'string' && value.match(/^(-?\d+)-(-?\d+)$/);
+			return matches ? [Number(matches[1]), Number(matches[2])] : null;
+		}
+
 		function directorist_custom_range_slider() {
 			let sliders = document.querySelectorAll(
 				'.directorist-custom-range-slider'
@@ -2145,27 +2151,14 @@ document.addEventListener('DOMContentLoaded', () => {
 					let maxValue = maxInput.value;
 
 					// Assign min-max values from custom-range-slider params
-					if (
-						fieldRangeValueParam &&
-						fieldRangeValueParam !== '0-0'
-					) {
-						const [min, max] = fieldRangeValueParam
-							.split('-')
-							.map(Number);
-
-						minValue = min;
-						maxValue = max;
-					} else if (
-						customNumberParams &&
-						customNumberParams !== '0-0'
-					) {
-						const [min, max] = customNumberParams
-							.split('-')
-							.map(Number);
-
-						// Use the split values as min-max
-						minValue = min;
-						maxValue = max;
+					const fieldRange = parseNumberRange(fieldRangeValueParam);
+					const legacyRange = parseNumberRange(customNumberParams);
+					if (fieldRange && fieldRangeValueParam !== '0-0') {
+						minValue = fieldRange[0];
+						maxValue = fieldRange[1];
+					} else if (legacyRange && customNumberParams !== '0-0') {
+						minValue = legacyRange[0];
+						maxValue = legacyRange[1];
 					} else if (
 						effectiveRangeMinParam &&
 						effectiveRangeMaxParam

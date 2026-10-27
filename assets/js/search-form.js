@@ -4720,6 +4720,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Custom Range Slider
+    function parseNumberRange(value) {
+      var matches = typeof value === 'string' && value.match(/^(-?\d+)-(-?\d+)$/);
+      return matches ? [Number(matches[1]), Number(matches[2])] : null;
+    }
+
     function directorist_custom_range_slider() {
       var sliders = document.querySelectorAll('.directorist-custom-range-slider');
       sliders.forEach(function (sliderItem) {
@@ -4792,22 +4797,14 @@ document.addEventListener('DOMContentLoaded', function () {
           var maxValue = maxInput.value;
 
           // Assign min-max values from custom-range-slider params
-          if (fieldRangeValueParam && fieldRangeValueParam !== '0-0') {
-            var _fieldRangeValueParam = fieldRangeValueParam.split('-').map(Number),
-              _fieldRangeValueParam2 = (0,_babel_runtime_helpers_slicedToArray__WEBPACK_IMPORTED_MODULE_0__["default"])(_fieldRangeValueParam, 2),
-              min = _fieldRangeValueParam2[0],
-              max = _fieldRangeValueParam2[1];
-            minValue = min;
-            maxValue = max;
-          } else if (customNumberParams && customNumberParams !== '0-0') {
-            var _customNumberParams$s = customNumberParams.split('-').map(Number),
-              _customNumberParams$s2 = (0,_babel_runtime_helpers_slicedToArray__WEBPACK_IMPORTED_MODULE_0__["default"])(_customNumberParams$s, 2),
-              _min = _customNumberParams$s2[0],
-              _max = _customNumberParams$s2[1];
-
-            // Use the split values as min-max
-            minValue = _min;
-            maxValue = _max;
+          var fieldRange = parseNumberRange(fieldRangeValueParam);
+          var legacyRange = parseNumberRange(customNumberParams);
+          if (fieldRange && fieldRangeValueParam !== '0-0') {
+            minValue = fieldRange[0];
+            maxValue = fieldRange[1];
+          } else if (legacyRange && customNumberParams !== '0-0') {
+            minValue = legacyRange[0];
+            maxValue = legacyRange[1];
           } else if (effectiveRangeMinParam && effectiveRangeMaxParam) {
             // Modal Search Form
             minValue = effectiveRangeMinParam;
