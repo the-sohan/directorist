@@ -4845,6 +4845,20 @@ function directorist_get_featured_listing_status( $listing_id, $default_status )
     return $default_status;
 }
 
+/**
+ * Parse the signed integer bounds serialized by a custom Number slider.
+ *
+ * @param string $value Range such as "-100000-50000" or "-100000--50000".
+ * @return int[]|null Bounds, or null when the value is not a range.
+ */
+function directorist_parse_number_range( $value ) {
+    if ( ! is_scalar( $value ) || ! preg_match( '/\A(-?\d+)-(-?\d+)\z/', (string) $value, $matches ) ) {
+        return null;
+    }
+
+    return [ (int) $matches[1], (int) $matches[2] ];
+}
+
 function directorist_get_distance_range( $miles ) {
     // Set default values for min and max distance
     $min_distance = 0;
