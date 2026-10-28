@@ -632,9 +632,15 @@ class Listings_Controller extends Legacy_Listings_Controller {
                     $data[ $field_key ] = $this->get_images( $listing, $context );
                     break;
 
+                case 'website':
                 case 'url':
                     $field_value       = get_post_meta( $listing->ID, '_' . $field_key, true );
-                    $data[ $field_key ] = ( 'view' === $context ? esc_url( $field_value ) : esc_url_raw( $field_value ) );
+                    $data[ $field_key ] = ( 'view' === $context ? esc_url( directorist_contact_url_for_display( $field_value ) ) : esc_url_raw( directorist_contact_url_for_display( $field_value ) ) );
+                    break;
+
+                case 'email':
+                    $email = get_post_meta( $listing->ID, '_' . $field_key, true );
+                    $data[ $field_key ] = 'view' === $context ? directorist_contact_email_for_display( $email ) : $email;
                     break;
 
                 case 'textarea':
@@ -1481,6 +1487,10 @@ class Listings_Controller extends Legacy_Listings_Controller {
                 'fields'             => array(
                     'description' => __( 'Fields data.', 'directorist' ),
                     'type'        => 'object',
+                    'arg_options' => array(
+                        'validate_callback' => 'directorist_validate_listing_rest_fields',
+                        'sanitize_callback' => 'directorist_sanitize_listing_rest_fields',
+                    ),
                     'context'     => array( 'view', 'edit' ),
                     'properties'  => $fields,
                 ),

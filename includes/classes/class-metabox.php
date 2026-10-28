@@ -641,6 +641,23 @@ class ATBDP_Metabox {
         $meta_data['_expiry_date'] = $expire_date;
         $meta_data                 = apply_filters( 'atbdp_listing_meta_admin_submission', $meta_data, $_POST );
 
+        $contact_errors = [];
+        foreach ( directorist_get_contact_fields( $directory_id ) as $meta_key => $field ) {
+            if ( ! array_key_exists( $meta_key, $meta_data ) ) {
+                continue;
+            }
+            $prepared = directorist_prepare_contact_field( $field, $meta_data[ $meta_key ] );
+            if ( is_wp_error( $prepared ) ) {
+                $contact_errors[] = $field->label . ': ' . $prepared->get_error_message();
+                unset( $meta_data[ $meta_key ] );
+            } else {
+                $meta_data[ $meta_key ] = $prepared;
+            }
+        }
+        if ( $contact_errors ) {
+            set_transient( 'directorist_contact_errors_' . get_current_user_id(), $contact_errors, MINUTE_IN_SECONDS );
+        }
+
         $valid_metadata = directorist_filter_listing_empty_metadata( $meta_data );
         foreach ( $valid_metadata as $meta_key => $meta_value ) {
             update_post_meta( $post_id, $meta_key, $meta_value );
