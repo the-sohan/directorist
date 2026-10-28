@@ -41,9 +41,9 @@ class Ability_Registrar {
                         try {
                             return Access_Control::permission( $name, (array) $args );
                         } catch ( Failure $error ) {
-                            return $error->as_error();
+                            return Tool_Errors::capture( $error->as_error() );
                         } catch ( \Throwable $error ) {
-                            return new \WP_Error( 'directorist_mcp_extension_failed', __( 'An integration could not authorize this operation.', 'directorist' ) );
+                            return Tool_Errors::capture( new \WP_Error( 'directorist_mcp_extension_failed', __( 'An integration could not authorize this operation.', 'directorist' ) ) );
                         }
                     },
                     'execute_callback'    => static function ( $args = [] ) use ( $name ) {

@@ -43,7 +43,7 @@ class Builder_Operations {
         }
         $config  = (array) Directory_Configuration::normalize_value( $values[ $key ], $definition );
         $widgets = Builder_Schema::widgets( $definition );
-        $name = $op['widget'] ?? '';
+        $name    = $op['widget'] ?? '';
         if ( 'update' === $action && isset( $op['changes']['original_widget_key'] ) ) {
             $name = $config['fields'][ $op['id'] ?? '' ]['widget_name'] ?? '';
             if ( isset( $op['slot'] ) && is_array( $op['slot'] ) ) {
@@ -101,10 +101,14 @@ class Builder_Operations {
             return $op;
         }
         $fields  = $values['submission_form_fields']['fields'] ?? [];
-        $matches = array_keys( array_filter( $fields, static function ( $field ) use ( $source_name ) {
-            return $source_name === ( $field['widget_name'] ?? '' );
-        } ) );
-        $source = $op['changes']['original_widget_key'] ?? null;
+        $matches = array_keys(
+            array_filter(
+                $fields, static function ( $field ) use ( $source_name ) {
+                    return $source_name === ( $field['widget_name'] ?? '' );
+                }
+            )
+        );
+        $source  = $op['changes']['original_widget_key'] ?? null;
         if ( null === $source ) {
             if ( in_array( $op['id'] ?? '', $matches, true ) ) {
                 $source = $op['id'];
@@ -147,9 +151,8 @@ class Builder_Operations {
             }
             if ( 'add' === $action ) {
                 $changes = Validation::object( $op['changes'] ?? [] );
-                Validation::check( ! $id || ( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ) ), __( 'Use a stable section ID with letters, numbers, hyphens or underscores.', 'directorist' ) );
+                Validation::check( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ), __( 'Supply a stable section ID with letters, numbers, hyphens or underscores before previewing.', 'directorist' ) );
                 Validation::check( ! $id || ! in_array( $id, array_column( $config['groups'], 'id' ), true ), __( 'Section ID is already in use.', 'directorist' ) );
-                $id = $id ?: wp_generate_uuid4();
                 if ( isset( $op['widget'] ) ) {
                     $name = $op['widget'];
                     Validation::check( isset( $widgets[ $name ] ) && $widgets[ $name ]['writable'] && 'section' === ( $widgets[ $name ]['type'] ?? '' ), __( 'Select a supported section widget.', 'directorist' ) );
@@ -211,8 +214,7 @@ class Builder_Operations {
             $name = $op['widget'] ?? '';
             Validation::check( isset( $widgets[ $name ] ) && $widgets[ $name ]['writable'], __( 'This widget is not supported for MCP editing.', 'directorist' ), 'unsupported_operation' );
             Validation::check( 'section' !== ( $widgets[ $name ]['type'] ?? '' ), __( 'Add this widget as a section, not as a field.', 'directorist' ) );
-            $id = $id ?: $name . '-' . substr( wp_generate_uuid4(), 0, 8 );
-            Validation::check( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ), __( 'Use a stable field ID with letters, numbers, hyphens or underscores.', 'directorist' ) );
+            Validation::check( is_string( $id ) && preg_match( '/^[A-Za-z0-9_-]{1,100}$/', $id ), __( 'Supply a stable field ID with letters, numbers, hyphens or underscores before previewing.', 'directorist' ) );
             Validation::check( ! isset( $config['fields'][ $id ] ), __( 'Field ID is already in use.', 'directorist' ) );
             $field = self::new_widget( $name, $id, $widgets[ $name ] );
             if ( 'custom' === ( $field['widget_group'] ?? '' ) ) {

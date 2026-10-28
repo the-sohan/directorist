@@ -29,7 +29,7 @@ class Server {
         }
         $adapter->create_server(
             'directorist', 'directorist', 'mcp', __( 'Directorist MCP Server', 'directorist' ), __( 'Manage Directorist using your WordPress account permissions.', 'directorist' ), ATBDP_VERSION,
-            [ '\WP\MCP\Transport\HttpTransport' ], '\WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler', '\WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler',
+            [ Http_Transport::class ], '\WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler', '\WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler',
             array_map(
                 static function ( string $name ): string {
                     return 'directorist/' . $name;

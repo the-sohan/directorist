@@ -52,6 +52,7 @@ class Write_Guard {
     public static function run( string $tool, array $args, callable $prepare ): array {
         Read_Guard::assert_writable();
         Validation::check( ! self::$mutating, __( 'Nested MCP mutations are unsupported. Use one declared native transaction.', 'directorist' ), 'unsupported_operation' );
+        Write_Readiness::require_supported( [], true );
         Write_Lock::lock();
         try {
             self::fresh();
@@ -82,14 +83,14 @@ class Write_Guard {
                 Validation::check( is_string( $input ) && preg_match( '/^[A-Za-z0-9_.:-]{8,128}$/', $input ), __( 'Provide an idempotency_key of 8–128 letters, numbers, dots, colons, hyphens or underscores.', 'directorist' ), 'idempotency_required' );
                 $key = '_directorist_mcp_op_' . Canonical_Data::hash( [ get_current_blog_id(), get_current_user_id(), $tool, $input ] );
                 $old = get_option( $key );
-                if ( is_array( $old ) && $old['expires'] > time() ) {
+                if ( is_array( $old ) && ( 'done' !== ( $old['state'] ?? '' ) || ( $old['expires'] ?? 0 ) > time() ) ) {
                     Validation::check( hash_equals( $old['digest'], $digest ), __( 'This idempotency key was used for a different action.', 'directorist' ), 'idempotency_conflict' );
                     Validation::check( ( $old['registry'] ?? '' ) === Tool_Registry::instance()->fingerprint(), __( 'The extension contract changed. Reconcile before retrying.', 'directorist' ), 'contract_changed' );
                     if ( 'done' === $old['state'] ) {
                         Operation_Events::event( $tool, 'replay', $args );
                         return self::replay( $old['result'], $args, $tool );
                     }
-                    Validation::fail( 'outcome_unknown', __( 'This operation may have committed. Inspect the target before trying a new action.', 'directorist' ), [ 'committed' => 'unknown', 'next_step' => 'Read the target and reconcile using the request ID.', 'request_id' => $old['request_id'] ] );
+                    Validation::fail( 'resolved' === ( $old['state'] ?? '' ) ? 'operation_reconciled' : 'outcome_unknown', __( 'This operation cannot be dispatched again. Inspect the target and ask an administrator to reconcile the original request.', 'directorist' ), [ 'committed' => 'unknown', 'next_step' => 'Read the target and reconcile using the request ID. Do not use a replacement key.', 'request_id' => $old['request_id'] ] );
                 }
                 if ( $old ) {
                     delete_option( $key );
@@ -98,6 +99,7 @@ class Write_Guard {
             $plan   = Read_Guard::run( $prepare );
             $stored = [];
             Validation::check( isset( $plan['state'], $plan['preview'], $plan['execute'] ), __( 'The operation is unavailable.', 'directorist' ), 'unsupported_operation' );
+            Write_Readiness::require_supported( $plan['tables'] ?? [], true );
             $state = Canonical_Data::hash( [ $plan['state'], get_option( 'directorist_mcp_epoch', '' ), Tool_Registry::instance()->fingerprint() ] );
             if ( $dry ) {
                 $token = bin2hex( random_bytes( 24 ) );
@@ -118,7 +120,7 @@ class Write_Guard {
                 delete_transient( $token_key );
             }
             Transaction::check_tables( $plan['tables'] ?? [] );
-            $record = [ 'registry' => Tool_Registry::instance()->fingerprint(), 'digest' => $digest, 'state' => 'running', 'expires' => time() + DAY_IN_SECONDS, 'request_id' => Request_Context::request_id() ];
+            $record = [ 'actor_id' => get_current_user_id(), 'tool' => $tool, 'created' => time(), 'registry' => Tool_Registry::instance()->fingerprint(), 'digest' => $digest, 'state' => 'running', 'expires' => time() + DAY_IN_SECONDS, 'request_id' => Request_Context::request_id() ];
             Validation::check( add_option( $key, $record, '', false ), __( 'Could not reserve this operation. No changes were made.', 'directorist' ), 'operation_in_progress' );
             self::$active_key = $key;
             self::$mutating   = true;

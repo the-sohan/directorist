@@ -59,7 +59,8 @@ class Tool_Runner {
         } catch ( Failure $error ) {
             $result             = $error->as_error();
             $data               = $result->get_error_data();
-            $data['request_id'] = Request_Context::request_id();
+            $data['request_id'] = $data['request_id'] ?? Request_Context::request_id();
+            $data['attempt_id'] = Request_Context::request_id();
             $result->add_data( $data );
             return $result;
         } catch ( \Throwable $error ) {

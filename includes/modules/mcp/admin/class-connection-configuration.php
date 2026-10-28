@@ -27,6 +27,8 @@ class Connection_Configuration {
         return [
             'enabled'                         => Request_Context::enabled(),
             'ready'                           => Request_Context::dependencies(),
+            'connection_ready'                => Request_Context::dependencies(),
+            'write_readiness'                 => self::write_readiness(),
             'abilities_available'             => function_exists( 'wp_register_ability' ),
             'adapter_available'               => class_exists( '\WP\MCP\Core\McpAdapter' ),
             'adapter_setup'                   => Adapter_Setup::status(),
@@ -47,6 +49,19 @@ class Connection_Configuration {
             'adapter_url'                     => 'https://wordpress.org/plugins/mcp-adapter/',
             'guide_url'                       => rest_url( 'directorist/v1/mcp/guide' )
         ];
+    }
+
+    /** Publish operation-specific support without disabling permitted reads. */
+    private static function write_readiness(): array {
+        $status = [];
+        foreach ( Core_Tool_Provider::definitions() as $name => $definition ) {
+            if ( ! empty( $definition['write'] ) ) {
+                $status[ $name ] = Request_Context::dependencies()
+                    ? \Directorist\MCP\Safety\Write_Readiness::status( \Directorist\MCP\Safety\Write_Readiness::participants( $definition ) )
+                    : [ 'ready' => false, 'code' => 'dependency_unavailable', 'message' => __( 'Resolve the WordPress Abilities API and MCP Adapter dependencies before using MCP writes.', 'directorist' ) ];
+            }
+        }
+        return $status;
     }
 
     /**

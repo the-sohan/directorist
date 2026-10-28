@@ -64,7 +64,7 @@ class Read_Callbacks {
                 'configuration' => 'Native configuration key in the selected area.',
                 'entity'        => [ 'field', 'section', 'widget', 'options', 'template' ],
                 'action'        => [ 'add', 'update', 'move', 'reorder', 'remove' ],
-                'id'            => 'Stable field/widget/section ID from the configuration.',
+                'id'            => 'For field/section additions, supply a unique stable ID (1–100 letters, numbers, hyphens or underscores) before previewing. Existing objects use their discovered IDs. Layout widgets default to their native widget name.',
                 'slot'          => 'Discovered slot path; never a term-meta path.'
             ];
         }

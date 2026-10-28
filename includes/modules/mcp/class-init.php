@@ -39,6 +39,7 @@ class Init {
         add_action( 'wp_abilities_api_init', [ Transport\Ability_Registrar::class, 'abilities' ] );
         add_action( 'mcp_adapter_init', [ Transport\Server::class, 'server' ] );
         add_filter( 'mcp_adapter_tools_list', [ Transport\Server::class, 'filter_tools' ], 10, 2 );
+        add_filter( 'mcp_adapter_tool_call_result', [ Transport\Tool_Errors::class, 'result' ], 10, 5 );
         add_action( 'directorist_mcp_cleanup', [ Safety\Operation_Store::class, 'cleanup' ] );
     }
 }

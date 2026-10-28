@@ -26,6 +26,9 @@ class Access_Control {
      */
     public static function transport( $request = null ) {
         try {
+            if ( $request instanceof \WP_REST_Request ) {
+                \Directorist\MCP\Transport\Origin_Policy::validate( $request );
+            }
             self::connected();
             return true;
         } catch ( Failure $error ) {
@@ -87,6 +90,9 @@ class Access_Control {
         $definitions = Core_Tool_Provider::definitions();
         Validation::check( isset( $definitions[ $tool ] ), __( 'Unsupported tool.', 'directorist' ), 'unsupported_operation' );
         $definition = $definitions[ $tool ];
+        if ( ! empty( $definition['write'] ) ) {
+            \Directorist\MCP\Safety\Write_Readiness::require_supported( \Directorist\MCP\Safety\Write_Readiness::participants( $definition ) );
+        }
         if ( isset( $definition['owner'] ) ) {
             return Tool_Registry::instance()->permission( $tool, $args );
         }

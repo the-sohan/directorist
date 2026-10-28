@@ -53,7 +53,7 @@ Abilities use **directorist/action**; HTTP names use **directorist-action**. Cat
 
 Pagination defaults to 20, capped at 100. Bulk accepts 1–50 explicit items, one action, unique client_ref values and one taxonomy for term batches. Nested batches and implicit cross-item references are rejected.
 
-Every mutation requires **idempotency_key** on execution. Use **dry_run: true** to validate and obtain changes, current version and a five-minute **confirm_token**. Existing listing/directory/term mutations require **expected_version**. Settings may supply the version for the same selected keys. Builder operations use discovered configuration keys and stable IDs.
+Every mutation requires **idempotency_key** on execution. Use **dry_run: true** to validate and obtain changes, current version and a five-minute **confirm_token**. Existing listing/directory/term mutations require **expected_version**. Settings may supply the version for the same selected keys. Builder operations use discovered configuration keys and stable IDs. Field and section additions require a unique caller-supplied `id` before previewing (1–100 letters, numbers, hyphens or underscores); omitted IDs are rejected. Layout widgets retain their deterministic native-name default.
 
 Settings, directory/builder changes, bulk, deletion, trash/restore, publication and consequential term changes require previews. Content edits that change effective status also require confirmation. Tokens bind site, user, operation, payload, state and enablement epoch. Execution rechecks live permissions.
 
@@ -114,7 +114,7 @@ Use one stable writer callable per storage adapter. It receives the complete val
 
 Writes require transactional InnoDB core tables and MySQL/MariaDB advisory locks. Settings/builder units commit atomically; bulk commits one record at a time. Cooperating native settings/content/taxonomy writes take the same lock. Raw SQL from integrations cannot participate automatically.
 
-Database rollback cannot retract email, network calls, filesystem changes or arbitrary extension-hook side effects. Integrations must validate before writing and provide safe policies. An unclean execution retains an indeterminate retry reservation. Preview tokens expire after five minutes; outcomes expire after 24 hours and are cleaned by directorist_mcp_cleanup.
+Database rollback cannot retract email, network calls, filesystem changes or arbitrary extension-hook side effects. Integrations must validate before writing and provide safe policies. An unclean execution retains an indeterminate retry reservation. Preview tokens expire after five minutes; completed ordinary outcomes expire after 24 hours and are cleaned by directorist_mcp_cleanup. Unresolved reservations and resolved rejection markers never expire automatically; they cannot authorize another execution after cleanup. Administrators should regularly inspect and reconcile unresolved operations as described below.
 
 No roles, capabilities, tables or existing product data are migrated. The native order/payment/refund tables are existing transactional participants, not new MCP tables. Durable financial and extension-operation references are retained separately from the ordinary replay cleanup. The dedicated Vue field uses the settings registry and ships directly as **assets/src/js/admin/mcp/init.js** with scoped CSS. No generated legacy bundle is modified; no build is needed for these assets. Release filters retain only `assets/src/js/admin/mcp/` and `assets/src/css/admin/mcp/` while excluding other source files.
 
@@ -127,3 +127,27 @@ The [extension example](extension-tool-example.md#read-preview-and-execute) prov
 Verified on 2026-10-18 with WordPress 7.1.3, Directorist 8.10.5, PHP 8.2 CLI / PHP 8.0 web, adapter 0.6.1 and Node.js 22. The original local suite passed **153 assertions** before the order/extension expansion. Current checks and remaining release gates are recorded in [verification](verification.md). PHP coding standards, PHP/JavaScript syntax and PRD links also passed. Checks cover feature-off/alternate-entry guards, owner isolation, revoked capabilities, settings units, extension absence/deactivation, rollback, native builder output, taxonomy safety, image/file preservation, stale state, retries and mixed bulk outcomes. HTTP and pinned-bridge tests exercise real initialization, discovery, execution and revocation.
 
 Desktop browser QA covers root navigation/deep links, conditional Configure, drawer tabs, local dummy-credential filling, cleanup, Escape and focus restoration. The immediate native disable save was verified to hide Configure while preserving an exact hash of all sibling settings. MCP was left disabled and temporary accounts/credentials were removed. Responsive CSS is included; mobile devices, every named client release, all extension combinations and the full PRD matrix still require release QA. These checks do not claim completion of every PRD acceptance scenario.
+
+## Transport errors, origins and host readiness
+
+Directorist wraps the adapter HTTP transport without modifying the installed adapter. Actual tool failures retain `isError: true`. An allowlisted error object appears in both `structuredContent` and JSON text content, including `code`, `committed`, `retryable`, safe recovery instructions and any accessible `operation_id`. `request_id` identifies the original operation; `attempt_id` identifies the current request. Permission failures are captured before the adapter result filter; direct PHP abilities continue returning `WP_Error`. No credentials, arbitrary error data or stack traces are exported.
+
+A supplied browser Origin must match the scheme, hostname and effective port of the configured home/site URL. Subdirectory paths are excluded from the trusted origin. Absent Origin is allowed for authenticated non-browser clients; empty, `null`, multiple and malformed origins are rejected. Trusted browser integrations can append complete origins through `directorist_mcp_trusted_origins`; never derive these from inbound Host or forwarded headers. A reverse proxy must configure the public WordPress home/site URLs correctly. Origin approval does not grant authentication or permissions.
+
+The administrator status endpoint retains `ready` for connection prerequisites and adds `connection_ready` and `write_readiness`, with per-tool support, reason codes and actionable messages. Enablement permits a read-only connection on unsupported hosts. MCP mutations require connection-scoped advisory-lock acquisition/ownership/release and visible InnoDB participant tables. Backends must retain multiple named locks on the same connection; lock ownership is rechecked when coordinating native writes, so a reconnect cannot inherit a stale PHP lock flag. The probe uses a unique lock name rather than the product lock. Discovery and ability authorization enforce the same write support; execution rechecks before reserving work or consuming confirmation, and transaction/lock checks remain active at runtime. Native coordination activates only with supported base storage and locking. A failed preflight leaves ordinary native Directorist writes usable; actual product-lock contention still waits at most five seconds and rejects safely. Database/proxy configurations must preserve the same physical connection through lock acquisition, transaction and release.
+
+## Administrator reconciliation of ordinary operations
+
+Use the local PHP API from an authenticated administrator integration or `wp eval-file` after setting the administrator user. This is not a public MCP mutation. `Directorist\MCP\Safety\Operation_Store::unresolved($cursor)` returns a bounded inventory and continuation cursor without saved payloads or keys. Review every page, inspect the actual native target and related records, and establish the outcome independently. Retain the original exact arguments, actor, key and request ID with the incident. Legacy records may lack actor/tool metadata; identify these through the original request correlation.
+
+After verifying the native outcome, call:
+
+```php
+wp_set_current_user( $administrator_id );
+Directorist\MCP\Safety\Operation_Store::resolve(
+    $tool, $original_arguments, $original_actor_id, $original_idempotency_key,
+    $original_request_id, 'Reference to the verified native outcome / incident'
+);
+```
+
+The API rechecks administrator and current tool/object authorization, exact original payload and correlation, serializes against writers, and records the reconciling actor, time, evidence reference and current request ID. It emits `directorist_mcp_operation_reconciled` for audit integration. Resolution compacts the record and retains a permanent rejection marker; it never dispatches work or instructs clients to use a replacement key. The original record remains protected even if the registry changes. Financial/external intents continue using their separate durable recovery APIs.

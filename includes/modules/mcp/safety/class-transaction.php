@@ -23,16 +23,8 @@ class Transaction {
      */
     public static function atomic( callable $callback, array $tables = [], ?callable $invalidate = null ) {
         Read_Guard::assert_writable();
-        self::check_tables( $tables );
+        self::check_tables( array_merge( Write_Readiness::tables(), $tables ) );
         global $wpdb;
-        static $checked = false;
-        if ( ! $checked ) {
-            foreach ( [ $wpdb->posts, $wpdb->postmeta, $wpdb->terms, $wpdb->term_taxonomy, $wpdb->term_relationships, $wpdb->termmeta, $wpdb->options ] as $table ) {
-                $engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', $table ) );
-                Validation::check( 'INNODB' === strtoupper( (string) $engine ), __( 'MCP writes require transactional WordPress tables. No data has been changed.', 'directorist' ), 'unsupported_operation' );
-            }
-            $checked = true;
-        }
         $post_ids     = [];
         $term_ids     = [];
         $option_names = [];
@@ -51,9 +43,15 @@ class Transaction {
         add_action( 'delete_term', $term_hook, 1, 3 );
         add_action( 'updated_option', $option_hook );
         add_action( 'added_option', $option_hook );
+        if ( Write_Lock::is_locked() ) {
+            Write_Lock::lock();
+        }
         Validation::check( false !== $wpdb->query( 'START TRANSACTION' ), __( 'Could not begin a safe write transaction.', 'directorist' ), 'operation_failed' );
         try {
             $result = $callback();
+            if ( Write_Lock::is_locked() ) {
+                Write_Lock::lock();
+            }
             Validation::check( false !== $wpdb->query( 'COMMIT' ), __( 'The database commit could not be confirmed.', 'directorist' ), 'outcome_unknown' );
             return $result;
         } catch ( \Throwable $error ) {
@@ -103,7 +101,8 @@ class Transaction {
         foreach ( $tables as $table ) {
             Validation::check( is_string( $table ) && preg_match( '/^[A-Za-z0-9_]+$/', $table ), __( 'Invalid registered transaction table.', 'directorist' ), 'unsupported_operation' );
             $engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s', $table ) );
-            Validation::check( 'INNODB' === strtoupper( (string) $engine ), __( 'A registered store is unavailable or nontransactional.', 'directorist' ), 'unsupported_operation' );
+            Validation::check( '' === $wpdb->last_error && null !== $engine, __( 'MCP cannot inspect a required storage table. Check table availability and information_schema permissions.', 'directorist' ), 'write_storage_unavailable' );
+            Validation::check( 'INNODB' === strtoupper( (string) $engine ), __( 'MCP writes require InnoDB for every participating table. Ask the administrator to review storage configuration.', 'directorist' ), 'unsupported_operation' );
         }
     }
 }

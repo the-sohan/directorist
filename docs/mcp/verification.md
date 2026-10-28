@@ -166,3 +166,36 @@ Observed checks used initialization, `tools/list` and `tools/call` against the c
 - Clearing with attachment ID 0 previewed an empty URL; assigning a non-image was rejected. Subsequent MCP readback confirmed that those validation checks left the configured default unchanged.
 
 The ten changed/new PHP files passed syntax checks on PHP 7.4 and PHP 8.0, and focused project PHPCS with zero errors or warnings. Formatting used temporary copies and preserved every non-whitespace PHP token. QA dependencies were installed outside the repository; no project dependency files changed. The historical fixture suites remain absent. No build, commit or push was performed for this change.
+
+
+## Implementation handoff corrections — 28 October 2026
+
+Applied MCP-01 through MCP-05 from the implementation handoff:
+
+- Directorist's HTTP transport retains the adapter's error classification and adds only allowlisted recovery data to JSON text and structured content. Permission errors and execution errors are covered; operation and attempt correlations remain distinct. The adapter installation is unchanged.
+- New form fields and sections require explicit stable IDs before preview. Native layout widget defaults remain deterministic. Discovery describes this contract.
+- Running ordinary reservations and resolved rejection markers survive expiry and cleanup. Cleanup uses the writer lock so an expired completed record cannot race a replacement reservation. The local administrator reconciliation API records current authorization and audit correlation, compacts resolved records and never redispatches work.
+- Browser Origins are checked before transport admission on POST, GET and DELETE. Trusted origins retain the configured scheme even when WordPress URL helpers rewrite it behind a TLS proxy.
+- Connection prerequisites and per-operation write readiness are reported separately. Unique preflight locks test acquisition, ownership, multiple-lock semantics and release; required tables must be visible InnoDB participants. Unsupported hosts retain reads and ordinary native writes. Actual product contention remains bounded, and stale PHP lock flags cannot survive loss of database lock ownership.
+
+Validation used WordPress 7.1.3, PHP 8.2 and MySQL 8.0.35 on the configured HTTPS subdirectory installation:
+
+| Check | Observed result |
+|---|---|
+| `tests/mcp-handoff.php`, adapter 0.7.1 | 67 checks passed, including real authenticated HTTPS calls and real two-connection lock contention |
+| Same suite, adapter 0.6.1 | 67 checks passed using the bundled 0.6.1 source with an isolated temporary autoloader; installed dependencies and activation settings were preserved |
+| `tests/integration/mcp-builder-fields.php` | 181 builder checks, 112 card placements and 14 header widgets passed |
+| `tests/integration/mcp-search-form-builder.php` | 11 native custom search filters passed |
+| Focused PHP syntax, repository PHPCS and whitespace checks | Passed for the changed PHP implementation and regression suite |
+
+The handoff suite verifies JSON error recovery through an injected uncertain native order cancellation, exact retries and operation lookup; no charge or refund is dispatched. It compares previewed field IDs, custom storage keys, section IDs and new-field references with saved builder values over HTTP. It also covers unknown reservations after forced expiry/cleanup, completed cache cleanup, authorized reconciliation, unavailable locks, nontransactional/missing tables, alternate ability authorization, native-write compatibility, lock ownership loss and readiness recovery. Test application passwords, local fault fixtures, product records and operation records are removed in cleanup.
+
+Run the new suite on a disposable enabled local site:
+
+```sh
+MCP_TEST_CA=/path/to/local-ca.crt wp eval-file wp-content/plugins/directorist/tests/mcp-handoff.php
+```
+
+`MCP_TEST_CA` is needed only when the local HTTPS certificate uses a private CA. TLS verification remains enabled. Use the Local PHP/MySQL socket configuration when invoking WP-CLI outside its site shell.
+
+The broader MariaDB, managed-database/proxy and real payment-provider release matrices were not available in this local verification. These checks establish the local runtime and simulated failure behavior, rather than certifying every host configuration.

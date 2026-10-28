@@ -24,6 +24,9 @@ class Tool_Discovery {
         if ( ! is_user_logged_in() ) {
             return false;
         }
+        if ( ! empty( $definition['write'] ) && ! \Directorist\MCP\Safety\Write_Readiness::status( \Directorist\MCP\Safety\Write_Readiness::participants( $definition ) )['ready'] ) {
+            return false;
+        }
         if ( ! Tool_Registry::instance()->available( $name ) ) {
             return false;
         }

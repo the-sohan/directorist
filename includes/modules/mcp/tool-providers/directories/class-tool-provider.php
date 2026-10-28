@@ -35,7 +35,7 @@ class Tool_Provider implements Contracts_Tool_Provider {
             [ 'update-directory', 'directories', $directory_schema + [ 'changes' => $object_schema ], [ 'directory_id', 'changes' ], true, __( 'Preview and update supported directory identity/general policies.', 'directorist' ) ],
             [ 'set-default-directory', 'directories', $directory_schema, [ 'directory_id' ], true, __( 'Preview and select the single default directory.', 'directorist' ) ],
             [ 'delete-directory', 'directories', $directory_schema, [ 'directory_id' ], true, __( 'Delete only an empty, non-default directory without dependencies. Preview required.', 'directorist' ) ],
-            [ 'update-builder', 'directories', $directory_schema + $builder_area_schema + [ 'operations' => [ 'type' => 'array', 'items' => $object_schema, 'minItems' => 1, 'maxItems' => 50 ] ], [ 'directory_id', 'area', 'operations' ], true, __( 'Preview typed builder operations on stable field/section IDs. Existing listing values are retained.', 'directorist' ) ],
+            [ 'update-builder', 'directories', $directory_schema + $builder_area_schema + [ 'operations' => [ 'type' => 'array', 'items' => $object_schema, 'minItems' => 1, 'maxItems' => 50 ] ], [ 'directory_id', 'area', 'operations' ], true, __( 'Preview typed builder operations. Supply a unique stable ID for every field or section addition before previewing. Existing listing values are retained.', 'directorist' ) ],
         ];
         $definitions         = [];
         foreach ( $rows as $row ) {
