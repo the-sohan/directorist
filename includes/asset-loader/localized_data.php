@@ -402,6 +402,10 @@ class Localized_Data {
         $directories = directorist_get_directories();
         $relation    = [];
 
+        if ( is_wp_error( $directories ) ) {
+            return $relation;
+        }
+
         foreach ( $directories as $directory ) {
             $relation[ $directory->term_id ] = directorist_get_category_custom_field_relations( $directory->term_id );
         }
