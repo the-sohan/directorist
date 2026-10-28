@@ -47,6 +47,31 @@ WP_CLI::success( sprintf( '%d listings %s.', $count, $apply ? 'repaired' : 'woul
 
 $count = 0;
 $offset = 0;
+$needs_taxonomy_repair = static function( $term_id ) use ( $integration ) {
+    $stored = directorist_get_term_directory( $term_id );
+    // Match sync_taxonomy_directory() eligibility before checking its indexes.
+    if ( ! $stored || ! pll_get_term_language( $term_id ) ) {
+        return false;
+    }
+
+    $mapped = $integration->translate_taxonomy_directories( $term_id );
+    if ( $stored !== $mapped ) {
+        return true;
+    }
+
+    foreach ( $mapped as $directory ) {
+        if ( ! metadata_exists( 'term', $term_id, '_directory_type_' . $directory ) ) {
+            return true;
+        }
+    }
+    foreach ( array_keys( get_term_meta( $term_id ) ) as $key ) {
+        if ( preg_match( '/^_directory_type_([0-9]+)$/', $key, $matches ) && ! in_array( (int) $matches[1], $mapped, true ) ) {
+            return true;
+        }
+    }
+
+    return false;
+};
 do {
     $terms = get_terms( [ 'taxonomy' => [ ATBDP_CATEGORY, ATBDP_LOCATION ], 'hide_empty' => false, 'lang' => '', 'number' => 200, 'offset' => $offset, 'orderby' => 'term_id', 'order' => 'ASC' ] );
     if ( is_wp_error( $terms ) ) {
@@ -55,13 +80,13 @@ do {
     foreach ( $terms as $term ) {
         $old = directorist_get_term_directory( $term->term_id );
         $mapped = $integration->translate_taxonomy_directories( $term->term_id );
-        if ( $old === $mapped ) {
+        if ( ! $needs_taxonomy_repair( $term->term_id ) ) {
             continue;
         }
-        WP_CLI::log( sprintf( '%s term %d (%s): directories %s -> %s', $apply ? 'Repair' : 'Would repair', $term->term_id, $term->taxonomy, wp_json_encode( $old ), wp_json_encode( $mapped ) ) );
+        WP_CLI::log( sprintf( '%s term %d (%s): directories %s -> %s; reconcile directory indexes', $apply ? 'Repair' : 'Would repair', $term->term_id, $term->taxonomy, wp_json_encode( $old ), wp_json_encode( $mapped ) ) );
         if ( $apply ) {
             $integration->sync_taxonomy_directory( $term->term_id );
-            if ( directorist_get_term_directory( $term->term_id ) !== $mapped ) {
+            if ( directorist_get_term_directory( $term->term_id ) !== $mapped || $needs_taxonomy_repair( $term->term_id ) ) {
                 WP_CLI::error( 'Repair verification failed for term ' . $term->term_id );
             }
         }
