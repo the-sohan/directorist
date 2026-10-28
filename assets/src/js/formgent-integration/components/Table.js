@@ -126,7 +126,9 @@ export default function Tables(props) {
 					return (
 						<div className="directorist-table-enquiry-listing">
 							<h2>{item.listing_title}</h2>
-							<span>{formatRelativeDate(item.created_at)}</span>
+							<span>
+								{formatRelativeDate(item.created_at, item.created_at_timestamp)}
+							</span>
 						</div>
 					);
 				},

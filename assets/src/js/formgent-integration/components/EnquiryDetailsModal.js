@@ -266,7 +266,10 @@ export default function EnquiryDetailsModal({
 											</p>
 										)}
 										<span>
-											{formatRelativeDate(singleItem?.response?.created_at)}
+											{formatRelativeDate(
+												singleItem?.response?.created_at,
+												singleItem?.response?.created_at_timestamp
+											)}
 										</span>
 									</div>
 								</div>

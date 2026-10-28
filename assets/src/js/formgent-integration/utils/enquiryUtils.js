@@ -544,11 +544,18 @@ function normalizeDateInput(value, { assumeUTC = false } = {}) {
 	return Number.isNaN(localParsed.getTime()) ? null : localParsed;
 }
 
-export const formatRelativeDate = (dateString) => {
-	if (!dateString) return '';
+export const formatRelativeDate = (dateString, timestamp = null) => {
+	// Prefer the database's epoch value: bare TIMESTAMP strings use its session timezone.
+	const hasTimestamp =
+		timestamp !== null &&
+		timestamp !== '' &&
+		Number.isFinite(Number(timestamp));
+	if (!hasTimestamp && !dateString) return '';
 
-	// MySQL-style datetimes have no timezone; treat them as UTC
-	const date = normalizeDateInput(dateString, { assumeUTC: true });
+	const date = normalizeDateInput(
+		hasTimestamp ? Number(timestamp) * 1000 : dateString,
+		{ assumeUTC: true }
+	);
 	if (!date) return dateString;
 
 	const now = new Date();
@@ -558,6 +565,15 @@ export const formatRelativeDate = (dateString) => {
 	const diffHours = Math.floor(diffMinutes / 60);
 	const diffDays = Math.floor(diffHours / 24);
 
+	if (diffMs < 0) {
+		return date.toLocaleString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit',
+		});
+	}
 	if (diffSeconds < 60) {
 		return 'just now';
 	}
