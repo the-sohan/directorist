@@ -3060,18 +3060,32 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     ]
                 );
 
-                $response = json_decode( $response['body'], true );
+                if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+                    return '';
+                }
+
+                $body = wp_remote_retrieve_body( $response );
+
+                if ( ! is_string( $body ) ) {
+                    return '';
+                }
+
+                $response = json_decode( $body, true );
             } catch ( Exception $e ) {
                 return '';
             }
 
-            $status['response'] = $response;
-
-            if ( empty( $response['success'] ) && empty( $response['data'] ) ) {
+            if ( ! is_array( $response ) || empty( $response['success'] ) || empty( $response['data'] ) || ! is_string( $response['data'] ) ) {
                 return '';
             }
 
-            return $response['data'];
+            $url = wp_parse_url( $response['data'] );
+
+            if ( empty( $url['host'] ) || empty( $url['scheme'] ) || ! in_array( strtolower( $url['scheme'] ), [ 'http', 'https' ], true ) ) {
+                return '';
+            }
+
+            return esc_url_raw( $response['data'], [ 'http', 'https' ] );
         }
 
         // get_purchased_extension_list
