@@ -331,6 +331,10 @@ const ADMIN_EVENT_TEMPLATE_MAP = {
     subject: "email_sub_deleted_listing_admin",
     body: "email_tmpl_deleted_listing_admin",
   },
+  listing_renewed: {
+    subject: "email_sub_renewed_listing_admin",
+    body: "email_tmpl_renewed_listing_admin",
+  },
   order_created: {
     subject: "email_sub_new_order_admin",
     body: "email_tmpl_new_order_admin",
