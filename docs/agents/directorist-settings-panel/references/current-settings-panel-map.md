@@ -37,6 +37,12 @@ Last reviewed: 2026-10-06
 - Only keys registered in `$this->fields` are saved.
 - Values persist inside the shared WordPress option `atbdp_option`.
 
+## Import Contract
+
+- JSON import and Restore Defaults both commit `importFields` in `CPT_Manager_Store.js`, then emit `updateData` to use the existing settings save flow.
+- Import only destination keys registered in `state.fields`; exports/default data can contain unavailable extension, directory-specific or legacy fields. Calling `Vue.set` on an absent field throws and stops later valid fields from importing.
+- Keep the `Vue.set` update for registered fields and preserve defined falsy values. Verify valid fields after an unavailable key, native import/save/reload, and Restore Defaults when changing this mutation.
+
 ## UI Contract
 
 - The settings shell owns the top bar, breadcrumbs, search, save buttons, sidebar, tab contents, and footer save area.

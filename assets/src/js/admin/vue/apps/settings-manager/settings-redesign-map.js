@@ -397,6 +397,10 @@ const FIELD_OVERRIDES = {
 		label: 'Featured fee',
 		description: 'What a user pays to feature a single listing.',
 	},
+	featured_listing_payment_type: {
+		label: 'Payment Type',
+		description: 'Choose which checkout provider handles featured upgrades.',
+	},
 	featured_listing_time: {
 		label: 'Featured duration',
 		description:
@@ -1433,6 +1437,7 @@ const FIELD_GROUPS = {
 			fields: [
 				'enable_monetization',
 				'enable_featured_listing',
+				'featured_listing_payment_type',
 				'featured_listing_price',
 				'featured_listing_time',
 				'featured_listing_desc',
@@ -1612,6 +1617,8 @@ const FIELD_GROUPS = {
 				'email_tmpl_edit_listing_admin',
 				'email_sub_deleted_listing_admin',
 				'email_tmpl_deleted_listing_admin',
+				'email_sub_renewed_listing_admin',
+				'email_tmpl_renewed_listing_admin',
 				'email_sub_new_order_admin',
 				'email_tmpl_new_order_admin',
 				'email_sub_completed_order_admin',
@@ -1662,6 +1669,8 @@ const FIELD_GROUPS = {
 				'email_tmpl_edit_listing_admin',
 				'email_sub_deleted_listing_admin',
 				'email_tmpl_deleted_listing_admin',
+				'email_sub_renewed_listing_admin',
+				'email_tmpl_renewed_listing_admin',
 				'email_sub_new_order_admin',
 				'email_tmpl_new_order_admin',
 				'email_sub_completed_order_admin',

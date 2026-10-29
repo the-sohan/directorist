@@ -1,3 +1,4 @@
+import { setGoogleSearchLocation } from './components/google-search-location';
 import {
 	applyConditionalLogic as applyConditionalLogicBase,
 	evaluateConditionalLogic as evaluateConditionalLogicBase,
@@ -920,21 +921,17 @@ document.addEventListener('DOMContentLoaded', () => {
 		if ($('.directorist-btn-reset-js') !== null) {
 			$('body').on('click', '.directorist-btn-reset-js', function (e) {
 				e.preventDefault();
+				const resetUrl = new URL(window.location.href);
+				const contextParams = new URLSearchParams();
+				['directory_type', 'view'].forEach((key) => {
+					const value = resetUrl.searchParams.get(key);
+					if (value) contextParams.set(key, value);
+				});
+				resetUrl.search = contextParams.toString();
+				resetUrl.hash = '';
 				setTimeout(() => {
-					// Clear URL params on modal form reset
-					const baseUrl =
-						window.location.origin + window.location.pathname;
-
-					// Update the URL in the address bar
-					window.history.replaceState(null, '', baseUrl);
-					if (this.closest('.directorist-search-modal')) {
-						// Clear only the query parameters
-						const baseUrl =
-							window.location.origin + window.location.pathname;
-
-						// Update the URL in the address bar
-						window.history.replaceState(null, '', baseUrl);
-					}
+					// Clear filters while retaining the directory and card view.
+					window.history.replaceState(null, '', resetUrl.toString());
 				}, 300);
 
 				// Reset search form values
@@ -1748,17 +1745,12 @@ document.addEventListener('DOMContentLoaded', () => {
 								autocomplete,
 								'place_changed',
 								function () {
-									let place = autocomplete.getPlace();
-									elm
-										.closest('.directorist-search-field')
-										.querySelector(
-											`#${field.lat_id}`
-										).value = place.geometry.location.lat();
-									elm
-										.closest('.directorist-search-field')
-										.querySelector(
-											`#${field.lng_id}`
-										).value = place.geometry.location.lng();
+									setGoogleSearchLocation(
+										elm,
+										autocomplete.getPlace(),
+										field.lat_id,
+										field.lng_id
+									);
 								}
 							);
 						});
@@ -2114,6 +2106,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 
 		// Custom Range Slider
+		function parseNumberRange(value) {
+			const matches =
+				typeof value === 'string' && value.match(/^(-?\d+)-(-?\d+)$/);
+			return matches ? [Number(matches[1]), Number(matches[2])] : null;
+		}
+
 		function directorist_custom_range_slider() {
 			let sliders = document.querySelectorAll(
 				'.directorist-custom-range-slider'
@@ -2230,27 +2228,18 @@ document.addEventListener('DOMContentLoaded', () => {
 					let maxValue = maxInput.value;
 
 					// Assign min-max values from custom-range-slider params
+					const fieldRange = parseNumberRange(fieldRangeValueParam);
+					const legacyRange = parseNumberRange(customNumberParams);
 					if (
-						fieldRangeValueParam &&
+						fieldRange &&
 						fieldRangeValueParam !== '0-0'
 					) {
-						const [min, max] = fieldRangeValueParam
-							.split('-')
-							.map(Number);
-
-						minValue = min;
-						maxValue = max;
+						[minValue, maxValue] = fieldRange;
 					} else if (
-						customNumberParams &&
+						legacyRange &&
 						customNumberParams !== '0-0'
 					) {
-						const [min, max] = customNumberParams
-							.split('-')
-							.map(Number);
-
-						// Use the split values as min-max
-						minValue = min;
-						maxValue = max;
+						[minValue, maxValue] = legacyRange;
 					} else if (
 						effectiveRangeMinParam &&
 						effectiveRangeMaxParam
@@ -2644,16 +2633,29 @@ document.addEventListener('DOMContentLoaded', () => {
 				return '.directorist-search-form-wrap, .directorist-search-form, .directorist-search-modal, .directorist-search-adv-filter';
 			}
 
-			const getFieldValueFn = (fieldKey) =>
-				getFieldValueBase(fieldKey, jQuery, getSearchFormWrapper());
-			const evaluateConditionalLogicFn = (conditionalLogic) =>
-				evaluateConditionalLogicBase(conditionalLogic, getFieldValueFn);
-			const applyConditionalLogicFn = ($fieldWrapper) =>
+			const getFieldValueFn = (
+				fieldKey,
+				scope = getSearchFormWrapper()
+			) => getFieldValueBase(fieldKey, jQuery, scope);
+			const applyConditionalLogicFn = ($fieldWrapper) => {
+				// The archive's basic and sidebar forms share one filter context.
+				// Independent search forms, such as a header popup, must stay separate.
+				const $context = $fieldWrapper.closest(
+					'.directorist-archive-contents, .directorist-search-contents'
+				);
+				const $scope = $context.length
+					? $context
+					: $fieldWrapper.closest('form');
+
 				applyConditionalLogicBase(
 					$fieldWrapper,
-					evaluateConditionalLogicFn,
+					(conditionalLogic) =>
+						evaluateConditionalLogicBase(conditionalLogic, (fieldKey) =>
+							getFieldValueFn(fieldKey, $scope)
+						),
 					jQuery
 				);
+			};
 
 			watchFieldChangesBase(
 				getSearchFormWrapper,

@@ -23,29 +23,20 @@ window.addEventListener('load', () => {
 	}
 
 	/* Taxonomy list dropdown */
-	function categoryDropdown(selector, parent) {
-		var categoryListToggle = document.querySelectorAll(selector);
-		categoryListToggle.forEach(function (item) {
-			item.addEventListener('click', function (e) {
-				const categoryName = item.querySelector(
-					'.directorist-taxonomy-list__name'
+	$(document).on(
+		'click',
+		'.directorist-taxonomy-list-one .directorist-taxonomy-list__toggle, .directorist-taxonomy-list-one .directorist-taxonomy-list__sub-item-toggle',
+		function (e) {
+			const categoryName = this.querySelector(
+				'.directorist-taxonomy-list__name'
+			);
+			if (e.target !== categoryName) {
+				e.preventDefault();
+				this.classList.toggle(
+					'directorist-taxonomy-list__toggle--open'
 				);
-				if (e.target !== categoryName) {
-					e.preventDefault();
-					this.classList.toggle(
-						'directorist-taxonomy-list__toggle--open'
-					);
-				}
-			});
-		});
-	}
-	categoryDropdown(
-		'.directorist-taxonomy-list-one .directorist-taxonomy-list__toggle',
-		'.directorist-taxonomy-list-one .directorist-taxonomy-list'
-	);
-	categoryDropdown(
-		'.directorist-taxonomy-list-one .directorist-taxonomy-list__sub-item-toggle',
-		'.directorist-taxonomy-list-one .directorist-taxonomy-list'
+			}
+		}
 	);
 
 	// Taxonomy Ajax

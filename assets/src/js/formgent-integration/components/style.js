@@ -178,6 +178,7 @@ const EnquiriesComponentStyle = styled.div`
 		}
 		.dataviews-footer {
 			border-radius: 0 0 12px 12px;
+			padding-inline: 25px;
 		}
 		.components-input-control__container {
 			border: 1px solid #e5e7eb;
@@ -202,7 +203,11 @@ const EnquiriesComponentStyle = styled.div`
 		.dataviews-view-table {
 			border: none;
 			width: 100%;
-			table-layout: fixed;
+			table-layout: auto;
+			// Size the enquiry column independently of the optional bulk checkbox.
+			col.dataviews-view-table__col-enquiry {
+				width: 38%;
+			}
 			tbody {
 				td {
 					vertical-align: middle;
@@ -314,9 +319,8 @@ const EnquiriesComponentStyle = styled.div`
 		// Bulk actions footer bar
 		.dataviews-bulk-actions-footer__container {
 			background: #fff;
-			border-top: 1px solid #e5e7eb;
 			border-radius: 0 0 12px 12px;
-			padding: 8px 16px;
+			padding: 8px 0;
 			.components-button {
 				font-size: 13px;
 				font-weight: 500;
@@ -419,7 +423,6 @@ const EnquiriesComponentStyle = styled.div`
 			td {
 				&:first-child {
 					padding-left: 25px;
-					width: 38%;
 				}
 				&:last-child {
 					padding-right: 25px;

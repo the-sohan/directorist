@@ -1,6 +1,7 @@
 import { render, createElement, createRoot } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import EnquiriesComponent from './components/EnquiriesComponent';
+import { initializeEnquiryTranslations } from './utils/i18n';
 import './notification'; // Import notification system
 import './index.scss';
 
@@ -28,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function () {
 	if (!container) {
 		return;
 	}
+
+	initializeEnquiryTranslations();
 
 	// Ensure REST requests work for subdirectory.
 	setupApiFetch();

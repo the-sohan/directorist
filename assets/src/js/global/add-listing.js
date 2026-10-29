@@ -2,6 +2,7 @@
 // import { cacheCategoryCustomFields, getCategoryCustomFieldsCache } from '../global/components/cache-category-custom-fields';
 // import loadCategoryCustomFields from '../global/components/load-category-custom-fields';
 import '../global/components/setup-select2';
+import './components/normalize-contact-fields';
 import { directoristRequestHeaders } from '../helper';
 import '../public/components/colorPicker';
 import '../public/components/directoristDropdown';
