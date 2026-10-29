@@ -578,7 +578,14 @@ class ATBDP_Metabox {
         }
 
         $submission_form_fields = directorist_get_listing_form_fields( $directory_id );
+        $posted_data            = wp_unslash( $_POST );
+        $hidden_fields          = [];
         foreach ( $submission_form_fields as $key => $value ) {
+            if ( ! \Directorist\Fields\Conditional_Logic::should_show_field( $value, $posted_data ) ) {
+                $hidden_fields[ $key ] = true;
+                continue;
+            }
+
             if ( 'image_upload' === $key ) {
                 $meta_data['_listing_img']     = ! empty( $_POST['listing_img'] ) ? (array) directorist_clean( wp_unslash( $_POST['listing_img'] ) ) : [];
                 $meta_data['_listing_prv_img'] = isset( $_POST['listing_prv_img'] ) ? directorist_clean( wp_unslash( $_POST['listing_prv_img'] ) ) : '';
@@ -669,10 +676,12 @@ class ATBDP_Metabox {
 
         directorist_delete_listing_empty_metadata( $post_id, $meta_data, $valid_metadata );
 
-        if ( ! empty( $_POST['listing_prv_img'] ) ) {
-            set_post_thumbnail( $post_id, directorist_clean( wp_unslash( $_POST['listing_prv_img'] ) ) );
-        } else {
-            delete_post_thumbnail( $post_id );
+        if ( ! isset( $hidden_fields['image_upload'] ) ) {
+            if ( ! empty( $_POST['listing_prv_img'] ) ) {
+                set_post_thumbnail( $post_id, directorist_clean( wp_unslash( $_POST['listing_prv_img'] ) ) );
+            } else {
+                delete_post_thumbnail( $post_id );
+            }
         }
 
         // $listing_status = get_post_meta( $post_id, '_listing_status', true );
