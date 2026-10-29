@@ -6,33 +6,28 @@ import { getCrudConfig } from '@shamim-ahmed/data';
 export const orderStoreName = 'directorist/user-orders';
 export const orderStorePath = '/directorist/v2/orders';
 
-export function normalizeUserOrders(body, headers) {
-	const payload = body?.data;
-	const items = Array.isArray(payload)
-		? payload
-		: Array.isArray(body?.items)
-			? body.items
-			: Array.isArray(payload?.items)
-				? payload.items
-				: [];
-	const rawTotal = headers.get('X-WP-Total') ?? body?.total ?? payload?.total;
-	const parsedTotal = Number(rawTotal);
-	const total =
-		rawTotal !== null &&
-		rawTotal !== undefined &&
-		rawTotal !== '' &&
-		Number.isFinite(parsedTotal) &&
-		parsedTotal >= 0
-			? parsedTotal
-			: items.length;
+function normalizeUserOrders(body, headers) {
+	const data = body?.data ?? body;
+	const items = Array.isArray(data)
+		? data
+		: Array.isArray(data?.items) ? data.items : [];
+	const rawTotal = headers.get('X-WP-Total') ?? data?.total ?? body?.total;
+	const total = Number(rawTotal ?? NaN);
 
-	return { ...body, items, total };
+	return {
+		items,
+		total: rawTotal !== '' && Number.isFinite(total) && total >= 0
+			? total : items.length,
+	};
 }
 
-export async function loadUserOrders(queryParams) {
+async function loadUserOrders(queryParams) {
 	const response = await apiFetch({
 		path: addQueryArgs(orderStorePath, queryParams),
 		parse: false,
+	}).catch(async (error) => {
+		// apiFetch returns a raw failed Response when parse is disabled.
+		throw typeof error?.json === 'function' ? await error.json() : error;
 	});
 
 	return normalizeUserOrders(await response.json(), response.headers);
