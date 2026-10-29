@@ -386,6 +386,9 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     'directorist-mpesa-payment-gateway'    => 'm-pesa-payment-gateway',
                     'm-pesa-payment-gateway'               => 'directorist-mpesa-payment-gateway',
                     'directorist-mpesa'                    => 'directorist-mpesa-payment-gateway',
+
+                    'directorist-paystack'                 => 'paystack-payment-gateway',
+                    'paystack-payment-gateway'             => 'directorist-paystack',
                 ]
             );
         }
@@ -554,6 +557,15 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
 
         public static function get_default_extensions() {
             return [
+                'directorist-paystack' => [
+                    'name'        => 'Paystack Payment Gateway',
+                    'base'        => 'directorist-paystack/directorist-paystack.php',
+                    'description' => __( 'Accept Paystack payments for listing fees, featured upgrades, and pricing plans.', 'directorist' ),
+                    'link'        => 'https://directorist.com/extensions/paystack-payment-gateway',
+                    'thumbnail'   => ATBDP_URL . 'assets/images/extensions/Paystack-Payment-Gateway.jpg',
+                    'active'      => true,
+                    'item_id'     => 372738,
+                ],
                 'directorist-elementor' => [
                     'name'        => 'Directorist Elementor Integration',
                     'description' => __( 'Connect Directorist with Elementor to build responsive directory pages, listings, archives, profiles, and searches visually.', 'directorist' ),
