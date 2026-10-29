@@ -14,10 +14,13 @@ const savedId = (value) =>
 			? String(value.id || '')
 			: '';
 
-export function adaptLegacyWebhookFields(fields) {
+export function adaptLegacyWebhookFields(
+	fields,
+	modeKeys = ['stripe_gateway_test_mode', 'paypal_gateway_test_mode']
+) {
 	for (const [key, field] of Object.entries(fields)) {
 		if (
-			['stripe_gateway_test_mode', 'paypal_gateway_test_mode'].includes(key) &&
+			modeKeys.includes(key) &&
 			field['section-toggle'] === undefined
 		) {
 			field['section-toggle'] = false;
@@ -25,9 +28,7 @@ export function adaptLegacyWebhookFields(fields) {
 		const condition = field.showIf || field.show_if || field['show-if'];
 		if (
 			condition &&
-			['stripe_gateway_test_mode', 'paypal_gateway_test_mode'].includes(
-				condition.where
-			) &&
+			modeKeys.includes(condition.where) &&
 			field['search-respect-show-if'] === undefined
 		) {
 			field['search-respect-show-if'] = true;

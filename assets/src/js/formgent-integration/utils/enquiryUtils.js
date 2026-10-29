@@ -3,6 +3,7 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { doAction } from '@wordpress/hooks';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * Utility functions for enquiry operations
@@ -44,6 +45,21 @@ export const extractEnquiryData = (item) => {
  */
 export const getUserEmail = (enquiry) => {
 	if (!enquiry) return null;
+	const findEmailAnswer = (answers = []) => {
+		for (const answer of answers) {
+			if (answer.field_type === 'email' && typeof answer.value === 'string') {
+				const email = answer.value.trim();
+				if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+					return email;
+				}
+			}
+			const email = findEmailAnswer(answer.children || []);
+			if (email) return email;
+		}
+		return null;
+	};
+	const answerEmail = findEmailAnswer(enquiry.answers || []);
+	if (answerEmail) return answerEmail;
 	return enquiry.user?.user_email || enquiry.user_email || null;
 };
 
@@ -53,8 +69,7 @@ export const getUserEmail = (enquiry) => {
  * @returns {string} - The listing title or 'Unknown Listing' if not found
  */
 export const getListingTitle = (enquiry) => {
-	if (!enquiry) return 'Unknown Listing';
-	return enquiry.listing_title || 'Unknown Listing';
+	return enquiry?.listing_title || __('Unknown Listing', 'directorist');
 };
 
 /**
@@ -205,16 +220,35 @@ export const bulkDeleteEnquiries = async (items, onSuccess) => {
 };
 
 /**
- * Send email using native email client
+ * Send an enquiry reply using the configured email app.
  * @param {Object|Array} item - The enquiry item
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export const sendEmailToUser = (item) => {
-	const enquiry = extractEnquiryData(item);
+export const sendEmailToUser = async (item) => {
+	let enquiry = extractEnquiryData(item);
 
 	if (!enquiry) {
 		console.error('No enquiry data found:', item);
 		return;
+	}
+
+	// Table rows may not have loaded their answers yet. Resolve them before
+	// falling back to the submitter's account email.
+	if (!Array.isArray(enquiry.answers) && enquiry.id) {
+		try {
+			const details = await fetchSingleEnquiry(enquiry.id);
+			if (!details?.success || !details.response) {
+				throw new Error('Response not found');
+			}
+			enquiry = { ...enquiry, ...details.response };
+		} catch (error) {
+			console.error('Error loading enquiry email:', error);
+			doAction('helpgent-toast', {
+				message: __('Unable to load enquiry details. Please try again.', 'directorist'),
+				type: 'error',
+			});
+			return;
+		}
 	}
 
 	const userEmail = getUserEmail(enquiry);
@@ -223,17 +257,16 @@ export const sendEmailToUser = (item) => {
 	if (!userEmail) {
 		console.error('No user email found for enquiry:', enquiry);
 		doAction('helpgent-toast', {
-			message: 'No email address found for this enquiry.',
+			message: __('No email address found for this enquiry.', 'directorist'),
 			type: 'error',
 		});
 		return;
 	}
 
 	// Create mailto link with pre-filled fields
-	const subject = `Your Enquiry on ${listingTitle}`;
-	const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}`;
+	const subject = sprintf(__('Your Enquiry on %s', 'directorist'), listingTitle);
+	const mailtoLink = `mailto:${encodeURIComponent(userEmail)}?subject=${encodeURIComponent(subject)}`;
 
-	// Open native email client
 	window.open(mailtoLink, '_self');
 };
 
@@ -242,13 +275,13 @@ export const sendEmailToUser = (item) => {
  * @param {string} selectedItem - The selected item ID
  * @returns {Promise} - The API call promise
  */
-export const fetchSingleEnquiry = async (selectedItem) => {
+export const fetchSingleEnquiry = async (selectedItem, box = 'receive') => {
 	if (!selectedItem) {
 		return Promise.reject(new Error('No selected item provided'));
 	}
 
 	return apiFetch({
-		path: `/directorist/formgent/responses/single?id=${selectedItem}`,
+		path: `/directorist/formgent/responses/single?id=${encodeURIComponent(selectedItem)}&box=${box}`,
 		method: 'GET',
 	});
 };
@@ -292,16 +325,16 @@ export const getStatusBadgeClass = (isRead) => {
  * @returns {string} - The status badge text
  */
 export const getStatusBadgeText = (isRead) => {
-	return isRead === '1' ? 'Read' : 'New';
+	return String(isRead) === '1' ? __('Read', 'directorist') : __('New', 'directorist');
 };
 
 /**
  * Fetch enquiry KPIs
  * @returns {Promise} - The API call promise
  */
-export const fetchEnquiryKPIs = async () => {
+export const fetchEnquiryKPIs = async (box = 'receive') => {
 	return apiFetch({
-		path: '/directorist/formgent/responses/kpis',
+		path: `/directorist/formgent/responses/kpis?box=${box}`,
 		method: 'GET',
 	});
 };
@@ -310,9 +343,20 @@ export const fetchEnquiryKPIs = async () => {
  * Fetch all enquiries
  * @returns {Promise} - The API call promise
  */
-export const fetchAllEnquiries = async () => {
+export const fetchAllEnquiries = async (
+	box = 'receive',
+	{ page = 1, perPage = 10, search = '' } = {}
+) => {
+	const params = new URLSearchParams({
+		box,
+		page: String(page),
+		per_page: String(perPage),
+	});
+	if (search.trim()) {
+		params.set('search', search.trim());
+	}
 	return apiFetch({
-		path: '/directorist/formgent/responses',
+		path: `/directorist/formgent/responses?${params.toString()}`,
 		method: 'GET',
 	});
 };
@@ -321,11 +365,11 @@ export const fetchAllEnquiries = async () => {
  * Refresh enquiry data (both KPIs and responses)
  * @returns {Promise<Object>} - Object containing responses and kpis
  */
-export const refreshEnquiryData = async () => {
+export const refreshEnquiryData = async (box = 'receive', options = {}) => {
 	try {
 		const [responses, kpis] = await Promise.all([
-			fetchAllEnquiries(),
-			fetchEnquiryKPIs(),
+			fetchAllEnquiries(box, options),
+			fetchEnquiryKPIs(box),
 		]);
 
 		return { responses, kpis };
@@ -345,9 +389,7 @@ export const extractTitleFromAnswers = (answers) => {
 		return '';
 	}
 
-	const firstTextField = answers.find(
-		(answer) => answer.field_type === 'text'
-	);
+	const firstTextField = answers.find((answer) => answer.field_type === 'text');
 
 	return firstTextField?.value || firstTextField?.answer || '';
 };
@@ -407,7 +449,11 @@ export const extractEnquiryTitleAndPrefix = (item) => {
  * @param {Map} cache - Cache map to store fetched answers (key: item.id, value: answers array)
  * @returns {Promise<{enrichedItems: Array, cache: Map}>} - Enriched items and updated cache
  */
-export const enrichEnquiriesWithAnswers = async (items, cache = new Map()) => {
+export const enrichEnquiriesWithAnswers = async (
+	items,
+	cache = new Map(),
+	box = 'receive'
+) => {
 	if (!Array.isArray(items) || items.length === 0) {
 		return { enrichedItems: items, cache };
 	}
@@ -432,7 +478,7 @@ export const enrichEnquiriesWithAnswers = async (items, cache = new Map()) => {
 	// Fetch answers for items that aren't cached (in parallel)
 	const fetchPromises = itemsToFetch.map(async (item) => {
 		try {
-			const singleEnquiry = await fetchSingleEnquiry(item.id);
+			const singleEnquiry = await fetchSingleEnquiry(item.id, box);
 			if (singleEnquiry?.response?.answers) {
 				// Cache the answers
 				cache.set(String(item.id), singleEnquiry.response.answers);
@@ -531,11 +577,18 @@ function normalizeDateInput(value, { assumeUTC = false } = {}) {
 	return Number.isNaN(localParsed.getTime()) ? null : localParsed;
 }
 
-export const formatRelativeDate = (dateString) => {
-	if (!dateString) return '';
+export const formatRelativeDate = (dateString, timestamp = null) => {
+	// Prefer the database's epoch value: bare TIMESTAMP strings use its session timezone.
+	const hasTimestamp =
+		timestamp !== null &&
+		timestamp !== '' &&
+		Number.isFinite(Number(timestamp));
+	if (!hasTimestamp && !dateString) return '';
 
-	// MySQL-style datetimes have no timezone; treat them as UTC
-	const date = normalizeDateInput(dateString, { assumeUTC: true });
+	const date = normalizeDateInput(
+		hasTimestamp ? Number(timestamp) * 1000 : dateString,
+		{ assumeUTC: true }
+	);
 	if (!date) return dateString;
 
 	const now = new Date();
@@ -545,6 +598,15 @@ export const formatRelativeDate = (dateString) => {
 	const diffHours = Math.floor(diffMinutes / 60);
 	const diffDays = Math.floor(diffHours / 24);
 
+	if (diffMs < 0) {
+		return date.toLocaleString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit',
+		});
+	}
 	if (diffSeconds < 60) {
 		return 'just now';
 	}
@@ -564,4 +626,12 @@ export const formatRelativeDate = (dateString) => {
 		month: 'short',
 		day: 'numeric',
 	});
+};
+
+/** Keep the guest fallback in the dashboard language, preserving real display names. */
+export const getEnquirySenderName = (enquiry) => {
+	const user = enquiry?.user;
+	return user && String(user.ID) === '0'
+		? __('Guest', 'directorist')
+		: user?.display_name || enquiry?.username || '';
 };

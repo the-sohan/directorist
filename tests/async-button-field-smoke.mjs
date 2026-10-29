@@ -38,6 +38,32 @@ vm.runInNewContext(
 );
 const mixin = sandbox.module.exports;
 const { getActionFieldLock, adaptLegacyWebhookFields } = mixin.helpers;
+const registeredModeFields = {
+	custom_gateway_mode: { type: 'toggle', value: false },
+	custom_test_key: {
+		'show-if': { where: 'custom_gateway_mode', conditions: [{ key: 'value', compare: '=', value: true }] },
+	},
+	custom_live_key: {
+		showIf: { where: 'custom_gateway_mode', conditions: [{ key: 'value', compare: '=', value: false }] },
+	},
+	explicit_mode: { 'section-toggle': true },
+	explicit_search: {
+		show_if: { where: 'custom_gateway_mode' },
+		'search-respect-show-if': false,
+	},
+	unrelated_toggle: { type: 'toggle', value: false },
+};
+adaptLegacyWebhookFields(registeredModeFields, ['custom_gateway_mode', 'explicit_mode']);
+assert.equal(registeredModeFields.custom_gateway_mode['section-toggle'], false);
+assert.equal(registeredModeFields.custom_test_key['search-respect-show-if'], true);
+assert.equal(registeredModeFields.custom_live_key['search-respect-show-if'], true);
+assert.equal(registeredModeFields.explicit_mode['section-toggle'], true);
+assert.equal(registeredModeFields.explicit_search['search-respect-show-if'], false);
+assert.equal(registeredModeFields.unrelated_toggle['section-toggle'], undefined);
+const noRegisteredModes = { stripe_gateway_test_mode: { type: 'toggle', value: false } };
+adaptLegacyWebhookFields(noRegisteredModes, []);
+assert.equal(noRegisteredModes.stripe_gateway_test_mode['section-toggle'], undefined);
+console.log('PASS: extension-registered gateway modes preserve generic section/search metadata and explicit overrides.');
 const fields = {
 	service_user: { value: 'demo' },
 	service_token: { value: 'saved' },

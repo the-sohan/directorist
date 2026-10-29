@@ -3,7 +3,7 @@
  */
 import { Modal } from '@wordpress/components';
 import { useEffect, useState, useRef } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * External dependencies
@@ -20,6 +20,7 @@ import {
 	fetchSingleEnquiry,
 	findMatchingEnquiry,
 	getStatusBadgeText,
+	getEnquirySenderName,
 	markEnquiryAsRead,
 	formatRelativeDate,
 } from '../utils/enquiryUtils';
@@ -37,6 +38,7 @@ import { EnquiryDetailsModalStyle, EnquiryModalGlobalStyle } from './style';
  * @returns {JSX.Element} - The modal component
  */
 export default function EnquiryDetailsModal({
+	box = 'receive',
 	isOpen,
 	selectedItem,
 	onClose,
@@ -104,20 +106,21 @@ export default function EnquiryDetailsModal({
 		setLoading(true);
 		setError(null);
 
-		fetchSingleEnquiry(selectedItem)
+		fetchSingleEnquiry(selectedItem, box)
 			.then((data) => {
+				if (!data?.success) throw new Error('Response not found');
 				setSingleItem(data);
 				const matched = findMatchingEnquiry(data, enquiries);
 				setMatchedEnquiry(matched);
 			})
 			.catch((err) => {
-				setError('Failed to load enquiry details');
+				setError(__('Failed to load enquiry details', 'directorist'));
 				console.error('Error loading enquiry:', err);
 			})
 			.finally(() => {
 				setLoading(false);
 			});
-	}, [selectedItem]);
+	}, [selectedItem, box]);
 
 	// Separate effect to update matchedEnquiry when enquiries change (without re-fetching)
 	useEffect(() => {
@@ -132,6 +135,7 @@ export default function EnquiryDetailsModal({
 	// Automatically mark as read when modal content loads
 	useEffect(() => {
 		if (
+			box === 'send' ||
 			!isOpen ||
 			!singleItem?.response ||
 			loading ||
@@ -159,12 +163,11 @@ export default function EnquiryDetailsModal({
 			handleTableRefresh || (() => {}),
 			true
 		);
-	}, [isOpen, singleItem?.response?.id, loading, handleTableRefresh]);
+	}, [box, isOpen, singleItem?.response?.id, loading, handleTableRefresh]);
 
 	// Function to handle mark as read with immediate UI update
 	const handleMarkAsReadClick = () => {
-		if (!singleItem?.response || singleItem.response.is_read === '1')
-			return;
+		if (!singleItem?.response || singleItem.response.is_read === '1') return;
 
 		// Update local state immediately for instant UI feedback
 		setSingleItem((prevSingleItem) => ({
@@ -187,18 +190,22 @@ export default function EnquiryDetailsModal({
 		<>
 			<EnquiryModalGlobalStyle />
 			<Modal
-				title={`Enquiry Details - ${matchedEnquiry?.listing_title || 'Unknown Listing'}`}
+				title={sprintf(
+					__('Enquiry Details - %s', 'directorist'),
+					matchedEnquiry?.listing_title || __('Unknown Listing', 'directorist')
+				)}
 				onRequestClose={onClose}
 				className="directorist-enquiry-modal"
 				size="large"
 				isDismissible={false}
 			>
-				{/* Custom close button without tooltip - positioned in header via global CSS */}
+				{/* Positioned in the header via global CSS. */}
 				<button
 					type="button"
 					className="directorist-enquiry-modal-close"
 					onClick={onClose}
-					aria-label=""
+					aria-label={__('Close enquiry details', 'directorist')}
+					title={__('Close enquiry details', 'directorist')}
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -214,12 +221,7 @@ export default function EnquiryDetailsModal({
 				<EnquiryDetailsModalStyle className="directorist-enquiry-modal-content">
 					{loading && (
 						<div className="directorist-loading">
-							<p>
-								{__(
-									'Loading enquiry details...',
-									'directorist'
-								)}
-							</p>
+							<p>{__('Loading enquiry details...', 'directorist')}</p>
 						</div>
 					)}
 
@@ -236,135 +238,131 @@ export default function EnquiryDetailsModal({
 									<div className="directorist-enquiry-sender-avatar">
 										<img
 											src={
-												matchedEnquiry?.user
-													?.profile_url ||
-												singleItem?.response?.user_email
+												box === 'send'
+													? matchedEnquiry?.recipient?.profile_url
+													: matchedEnquiry?.user?.profile_url
 											}
 											alt={
-												matchedEnquiry?.user
-													?.display_name ||
-												singleItem?.response?.username
+												box === 'send'
+													? matchedEnquiry?.recipient?.display_name
+													: getEnquirySenderName(matchedEnquiry)
 											}
 										/>
 									</div>
 									<div className="directorist-enquiry-sender-info">
 										<h2>
-											{matchedEnquiry?.user
-												?.display_name ||
-												singleItem?.response?.username}
+											{box === 'send'
+												? matchedEnquiry?.recipient?.display_name
+												: getEnquirySenderName(matchedEnquiry) ||
+													singleItem?.response?.username}
 											<span
-												className={`directorist-badge directorist-badge-${statusBadge(singleItem?.response?.is_read)}`}
+												className={`directorist-badge directorist-badge-${box === 'send' ? 'primary' : statusBadge(singleItem?.response?.is_read)}`}
 											>
-												{getStatusBadgeText(
-													singleItem?.response
-														?.is_read
-												)}
+												{box === 'send'
+													? __('Submitted', 'directorist')
+													: getStatusBadgeText(singleItem?.response?.is_read)}
 											</span>
 										</h2>
-										<p>
-											{matchedEnquiry?.user?.user_email ||
-												singleItem?.response
-													?.user_email}
-										</p>
+										{box === 'receive' && (
+											<p>
+												{matchedEnquiry?.user?.user_email ||
+													singleItem?.response?.user_email}
+											</p>
+										)}
 										<span>
 											{formatRelativeDate(
-												singleItem?.response?.created_at
+												singleItem?.response?.created_at,
+												singleItem?.response?.created_at_timestamp
 											)}
 										</span>
 									</div>
 								</div>
 								<div className="directorist-enquiry-listing">
-									<h3>
-										{__('Regarding Listing', 'directorist')}
-									</h3>
+									<h3>{__('Regarding Listing', 'directorist')}</h3>
 									<a
-										href={
-											singleItem?.listing_permalink || '#'
-										}
+										href={singleItem?.listing_permalink || '#'}
 										target="_blank"
 										rel="noopener noreferrer"
 									>
 										{matchedEnquiry?.listing_title ||
-											__(
-												'Unknown Listing',
-												'directorist'
-											)}
+											__('Unknown Listing', 'directorist')}
 									</a>
 								</div>
 							</div>
 
 							<div className="directorist-answers-section">
-								{singleItem?.response?.answers.map(
-									(answer, index) => {
-										if (ResponseAnswer) {
-											return (
-												<ResponseAnswer
-													key={index}
-													answer={answer}
-													handleAnswerIcon={
-														handleAnswerIcon
-													}
-													getFormattedAnswer={
-														getFormattedAnswer
-													}
-													ReactSVG={ReactSVG}
-													useState={useState}
-													useEffect={useEffect}
-													isLoadedFromDirectorist={
-														true
-													}
-												/>
-											);
-										}
-
-										return renderFallbackAnswer(
-											answer,
-											index
+								{singleItem?.response?.answers.map((answer, index) => {
+									if (ResponseAnswer) {
+										return (
+											<ResponseAnswer
+												key={index}
+												answer={answer}
+												handleAnswerIcon={handleAnswerIcon}
+												getFormattedAnswer={getFormattedAnswer}
+												ReactSVG={ReactSVG}
+												useState={useState}
+												useEffect={useEffect}
+												isLoadedFromDirectorist={true}
+											/>
 										);
 									}
-								)}
+
+									return renderFallbackAnswer(answer, index);
+								})}
 							</div>
 
-							<div className="directorist-enquiry-modal-footer">
-								<button
-									className="directorist-enquiry-modal-btn directorist-enquiry-modal-btn-reply"
-									onClick={() =>
-										handleSendEmail(singleItem?.response)
+							{box === 'receive' && (
+								<div className="directorist-enquiry-modal-footer">
+									<button
+										className="directorist-enquiry-modal-btn directorist-enquiry-modal-btn-reply"
+										aria-label={__('Send Email', 'directorist')}
+										title={__('Send Email', 'directorist')}
+										onClick={() =>
+										handleSendEmail({
+											...matchedEnquiry,
+											...singleItem?.response,
+										})
 									}
-								>
-									<Reply />
-									<span>
-										{__('Send Email', 'directorist')}
-									</span>
-								</button>
-								<button
-									className={`directorist-enquiry-modal-btn directorist-enquiry-modal-btn-resolved ${singleItem?.response?.is_read === '1' ? 'directorist-btn-disabled' : ''}`}
-									onClick={handleMarkAsReadClick}
-									disabled={
-										singleItem?.response?.is_read === '1'
-									}
-								>
-									<Check />
-									<span>
-										{singleItem?.response?.is_read === '1'
-											? __(
-													'Marked as read',
-													'directorist'
-												)
-											: __('Mark as read', 'directorist')}
-									</span>
-								</button>
-								<button
-									className="directorist-enquiry-modal-btn directorist-enquiry-modal-btn-delete"
-									onClick={() => {
-										handleDeleteItem(singleItem?.response);
-										onClose();
-									}}
-								>
-									<Trash />
-									<span>{__('Delete', 'directorist')}</span>
-								</button>
-							</div>
+									>
+										<Reply />
+										<span>{__('Send Email', 'directorist')}</span>
+									</button>
+									<button
+										className={`directorist-enquiry-modal-btn directorist-enquiry-modal-btn-resolved ${singleItem?.response?.is_read === '1' ? 'directorist-btn-disabled' : ''}`}
+										aria-label={
+											singleItem?.response?.is_read === '1'
+												? __('Marked as read', 'directorist')
+												: __('Mark as read', 'directorist')
+										}
+										title={
+											singleItem?.response?.is_read === '1'
+												? __('Marked as read', 'directorist')
+												: __('Mark as read', 'directorist')
+										}
+										onClick={handleMarkAsReadClick}
+										disabled={singleItem?.response?.is_read === '1'}
+									>
+										<Check />
+										<span>
+											{singleItem?.response?.is_read === '1'
+												? __('Marked as read', 'directorist')
+												: __('Mark as read', 'directorist')}
+										</span>
+									</button>
+									<button
+										className="directorist-enquiry-modal-btn directorist-enquiry-modal-btn-delete"
+										aria-label={__('Delete', 'directorist')}
+										title={__('Delete', 'directorist')}
+										onClick={() => {
+											handleDeleteItem(singleItem?.response);
+											onClose();
+										}}
+									>
+										<Trash />
+										<span>{__('Delete', 'directorist')}</span>
+									</button>
+								</div>
+							)}
 						</>
 					)}
 				</EnquiryDetailsModalStyle>

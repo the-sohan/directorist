@@ -1,3 +1,4 @@
+import '../../global/components/normalize-contact-fields';
 (function ($) {
 	$(function () {
 		var profileMediaUploader = null;

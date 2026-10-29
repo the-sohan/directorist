@@ -116,7 +116,10 @@ window.addEventListener('load', () => {
 			})
 		);
 
-		adaptLegacyWebhookFields(builderData.fields || {});
+		adaptLegacyWebhookFields(
+			builderData.fields || {},
+			builderData.config?.gateway_mode_keys
+		);
 
 		const app = new Vue({
 			el: '#atbdp-settings-manager',

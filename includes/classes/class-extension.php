@@ -93,6 +93,10 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                 return;
             }
 
+            // Ensure WordPress only receives installable Directorist extension updates.
+            add_filter( 'pre_set_site_transient_update_plugins', [ $this, 'prepare_extension_update_packages' ], PHP_INT_MAX );
+            add_filter( 'site_transient_update_plugins', [ $this, 'prepare_extension_update_packages' ], PHP_INT_MAX );
+
             // Ajax
             add_action( 'wp_ajax_atbdp_authenticate_the_customer', [ $this, 'authenticate_the_customer' ] );
             add_action( 'wp_ajax_atbdp_download_file', [ $this, 'handle_file_download_request' ] );
@@ -380,8 +384,15 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     'directorist-mailchimp'                => 'directorist-mailchimp-integration',
                     'directorist-mailchimp-integration'    => 'directorist-mailchimp',
 
+                    'directorist-listing-importer'         => 'directorist-listing-import',
+                    'directorist-listing-import'           => 'directorist-listing-importer',
+
                     'directorist-mpesa-payment-gateway'    => 'm-pesa-payment-gateway',
                     'm-pesa-payment-gateway'               => 'directorist-mpesa-payment-gateway',
+                    'directorist-mpesa'                    => 'directorist-mpesa-payment-gateway',
+
+                    'directorist-paystack'                 => 'paystack-payment-gateway',
+                    'paystack-payment-gateway'             => 'directorist-paystack',
                 ]
             );
         }
@@ -550,6 +561,16 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
 
         public static function get_default_extensions() {
             return [
+                'directorist-paystack' => [
+                    'name'        => 'Paystack Payment Gateway',
+                    'base'        => 'directorist-paystack/directorist-paystack.php',
+                    'description' => __( 'Accept Paystack payments for listing fees, featured upgrades, and pricing plans.', 'directorist' ),
+                    'link'        => 'https://directorist.com/extensions/paystack-payment-gateway',
+                    'thumbnail'   => ATBDP_URL . 'assets/images/extensions/Paystack-Payment-Gateway.jpg',
+                    'active'      => true,
+                    'item_id'     => 372738,
+                    'badges'      => [ self::get_product_badge( 'new', __( 'New', 'directorist' ) ) ],
+                ],
                 'directorist-elementor' => [
                     'name'        => 'Directorist Elementor Integration',
                     'description' => __( 'Connect Directorist with Elementor to build responsive directory pages, listings, archives, profiles, and searches visually.', 'directorist' ),
@@ -579,6 +600,7 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                 ],
                 'directorist-mpesa-payment-gateway' => [
                     'name'        => 'M-Pesa Payment Gateway',
+                    'base'        => 'directorist-mpesa/directorist-mpesa.php',
                     'description' => __( 'Accept M-Pesa payments directly through your Directorist checkout.', 'directorist' ),
                     'link'        => 'https://directorist.com/product/m-pesa-payment-gateway/',
                     'thumbnail'   => ATBDP_URL . 'assets/images/extensions/Mpesa-thumbnail.png',
@@ -615,6 +637,7 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                 ],
                 'directorist-listing-importer' => [
                     'name'        => 'Directorist Listing Importer',
+                    'base'        => 'directorist-listing-import/directorist-listing-import.php',
                     'description' => __( 'Import Google Maps and feeds into Directorist automatically, effortlessly.', 'directorist' ),
                     'link'        => 'https://directorist.com/product/directorist-listing-importer/',
                     'thumbnail'   => ATBDP_URL . 'assets/images/extensions/directorist-listing-importer.png',
@@ -891,6 +914,7 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                 ],
                 'directorist-mailchimp-integration' => [
                     'name'        => 'Mailchimp Integration',
+                    'base'        => 'directorist-mailchimp/directorist-mailchimp-integration.php',
                     'description' => __( 'Directorist Mailchimp Integration Connects Directorist with Mailchimp. It helps you to make your directory business grow faster and smarter with more leads.', 'directorist' ),
                     'link'        => 'https://directorist.com/product/directorist-mailchimp/',
                     'thumbnail'   => ATBDP_URL . 'assets/images/extensions/27_Mailchimp.svg',
@@ -1326,10 +1350,6 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                 return false;
             }
 
-            if ( ! is_array( $plugin_item ) || empty( $plugin_item['license'] ) || empty( $plugin_item['item_id'] ) ) {
-                return false;
-            }
-
             if ( ! is_string( $current_version ) || empty( $current_version ) ) {
                 return false;
             }
@@ -1337,8 +1357,7 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
             // Sanitize inputs.
             $plugin_key      = sanitize_key( $plugin_key );
             $current_version = sanitize_text_field( $current_version );
-            $license         = sanitize_text_field( $plugin_item['license'] );
-            $item_id         = absint( $plugin_item['item_id'] );
+            $license         = is_array( $plugin_item ) && ! empty( $plugin_item['license'] ) ? sanitize_text_field( $plugin_item['license'] ) : '';
 
             // Get extension definition.
             $default_extensions = static::get_default_extensions();
@@ -1430,9 +1449,11 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
             $purchased_extensions = self::get_purchased_extension_list();
             $default_extensions   = static::get_default_extensions();
 
-            if ( ! is_array( $purchased_extensions ) || ! is_array( $default_extensions ) ) {
+            if ( ! is_array( $default_extensions ) ) {
                 return $outdated_plugins;
             }
+
+            $purchased_extensions = is_array( $purchased_extensions ) ? $purchased_extensions : array();
 
             // Loop through default extensions and check for updates.
             foreach ( $default_extensions as $plugin_key => $extension ) {
@@ -1449,11 +1470,8 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     continue;
                 }
 
-                // Check if user has license for this extension.
+                // Use the license when available. Version discovery does not require one.
                 $plugin_item = self::extract_plugin_from_list( $plugin_key, $purchased_extensions );
-                if ( empty( $plugin_item ) || ! is_array( $plugin_item ) || empty( $plugin_item['license'] ) ) {
-                    continue;
-                }
 
                 // Get current version.
                 $current_version = isset( $plugins_data[ $base ]['Version'] ) ? $plugins_data[ $base ]['Version'] : '0.0.0';
@@ -1489,6 +1507,78 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
             return $outdated_plugins;
         }
 
+        /**
+         * Add authorized packages to Directorist extension updates.
+         *
+         * The version API can advertise a new version without a license while
+         * returning an empty package. WordPress treats that response as an
+         * installable update and fails when the update is requested. Resolve the
+         * package from the current subscription, or remove the unusable update
+         * from WordPress's installable update list. The Directorist Extensions
+         * screen still reports the available version independently.
+         *
+         * @since 8.9.5
+         *
+         * @param mixed $updates WordPress plugin update transient.
+         * @return mixed Filtered plugin update transient.
+         */
+        public function prepare_extension_update_packages( $updates ) {
+            if ( ! is_object( $updates ) || empty( $updates->response ) || ! is_array( $updates->response ) ) {
+                return $updates;
+            }
+
+            if ( empty( self::$extensions_aliases ) ) {
+                $this->setup_extensions_alias();
+            }
+
+            $purchased_extensions = self::get_purchased_extension_list();
+            $purchased_extensions = is_array( $purchased_extensions ) ? $purchased_extensions : array();
+
+            foreach ( static::get_default_extensions() as $plugin_key => $extension ) {
+                if ( ! is_array( $extension ) ) {
+                    continue;
+                }
+
+                $plugin_base = isset( $extension['base'] ) ? $extension['base'] : $plugin_key . '/' . $plugin_key . '.php';
+
+                if ( empty( $updates->response[ $plugin_base ] ) ) {
+                    continue;
+                }
+
+                $update  = $updates->response[ $plugin_base ];
+                $package = is_object( $update ) && isset( $update->package ) ? $update->package : '';
+
+                if ( is_array( $update ) && isset( $update['package'] ) ) {
+                    $package = $update['package'];
+                }
+
+                if ( ! empty( $package ) ) {
+                    continue;
+                }
+
+                $plugin_item = self::extract_plugin_from_list( $plugin_key, $purchased_extensions );
+
+                if ( is_array( $plugin_item ) && empty( $plugin_item['item_id'] ) && ! empty( $extension['item_id'] ) ) {
+                    $plugin_item['item_id'] = absint( $extension['item_id'] );
+                }
+
+                $package = self::get_file_download_link( $plugin_item, 'plugin' );
+
+                if ( empty( $package ) ) {
+                    unset( $updates->response[ $plugin_base ] );
+                    continue;
+                }
+
+                if ( is_object( $update ) ) {
+                    $updates->response[ $plugin_base ]->package = esc_url_raw( $package );
+                } elseif ( is_array( $update ) ) {
+                    $updates->response[ $plugin_base ]['package'] = esc_url_raw( $package );
+                }
+            }
+
+            return $updates;
+        }
+
         // extract_plugin_from_list
         public static function extract_plugin_from_list( $plugin_key = '', $list = [] ) {
 
@@ -1506,6 +1596,14 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
 
             if ( in_array( $plugin_alias_key, $keys_in_list ) ) {
                 $plugin_item = $list[ $plugin_alias_key ];
+            }
+
+            // A package folder can map to a catalog key that has a legacy purchase key.
+            if ( empty( $plugin_item ) && ! empty( $plugin_alias_key ) ) {
+                $purchase_alias_key = self::get_extension_alias_key( $plugin_alias_key );
+                if ( in_array( $purchase_alias_key, $keys_in_list, true ) ) {
+                    $plugin_item = $list[ $purchase_alias_key ];
+                }
             }
 
             return $plugin_item;
@@ -3219,6 +3317,12 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     $new_key = preg_replace( '/(directorist-)/', '', $new_key );
 
                     $extensions_keys[ $index ] = $new_key;
+
+                    // Also match purchases against the installed package's catalog alias.
+                    $alias_key = $this->get_extension_alias_key( strtok( $key, '/' ) );
+                    if ( ! empty( $alias_key ) ) {
+                        $extensions_keys[] = preg_replace( '/(directorist-)/', '', $alias_key );
+                    }
                 }
             }
 
@@ -3724,18 +3828,32 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     ]
                 );
 
-                $response = json_decode( $response['body'], true );
+                if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+                    return '';
+                }
+
+                $body = wp_remote_retrieve_body( $response );
+
+                if ( ! is_string( $body ) ) {
+                    return '';
+                }
+
+                $response = json_decode( $body, true );
             } catch ( Exception $e ) {
                 return '';
             }
 
-            $status['response'] = $response;
-
-            if ( empty( $response['success'] ) && empty( $response['data'] ) ) {
+            if ( ! is_array( $response ) || empty( $response['success'] ) || empty( $response['data'] ) || ! is_string( $response['data'] ) ) {
                 return '';
             }
 
-            return $response['data'];
+            $url = wp_parse_url( $response['data'] );
+
+            if ( empty( $url['host'] ) || empty( $url['scheme'] ) || ! in_array( strtolower( $url['scheme'] ), [ 'http', 'https' ], true ) ) {
+                return '';
+            }
+
+            return esc_url_raw( $response['data'], [ 'http', 'https' ] );
         }
 
         // get_purchased_extension_list
