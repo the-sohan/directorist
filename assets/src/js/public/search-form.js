@@ -920,21 +920,17 @@ document.addEventListener('DOMContentLoaded', () => {
 		if ($('.directorist-btn-reset-js') !== null) {
 			$('body').on('click', '.directorist-btn-reset-js', function (e) {
 				e.preventDefault();
+				const resetUrl = new URL(window.location.href);
+				const contextParams = new URLSearchParams();
+				['directory_type', 'view'].forEach((key) => {
+					const value = resetUrl.searchParams.get(key);
+					if (value) contextParams.set(key, value);
+				});
+				resetUrl.search = contextParams.toString();
+				resetUrl.hash = '';
 				setTimeout(() => {
-					// Clear URL params on modal form reset
-					const baseUrl =
-						window.location.origin + window.location.pathname;
-
-					// Update the URL in the address bar
-					window.history.replaceState(null, '', baseUrl);
-					if (this.closest('.directorist-search-modal')) {
-						// Clear only the query parameters
-						const baseUrl =
-							window.location.origin + window.location.pathname;
-
-						// Update the URL in the address bar
-						window.history.replaceState(null, '', baseUrl);
-					}
+					// Clear filters while retaining the directory and card view.
+					window.history.replaceState(null, '', resetUrl.toString());
 				}, 300);
 
 				// Reset search form values
