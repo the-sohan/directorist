@@ -3,7 +3,7 @@
  */
 import { Modal } from '@wordpress/components';
 import { useEffect, useState, useRef } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * External dependencies
@@ -20,6 +20,7 @@ import {
 	fetchSingleEnquiry,
 	findMatchingEnquiry,
 	getStatusBadgeText,
+	getEnquirySenderName,
 	markEnquiryAsRead,
 	formatRelativeDate,
 } from '../utils/enquiryUtils';
@@ -113,7 +114,7 @@ export default function EnquiryDetailsModal({
 				setMatchedEnquiry(matched);
 			})
 			.catch((err) => {
-				setError('Failed to load enquiry details');
+				setError(__('Failed to load enquiry details', 'directorist'));
 				console.error('Error loading enquiry:', err);
 			})
 			.finally(() => {
@@ -189,7 +190,10 @@ export default function EnquiryDetailsModal({
 		<>
 			<EnquiryModalGlobalStyle />
 			<Modal
-				title={`Enquiry Details - ${matchedEnquiry?.listing_title || 'Unknown Listing'}`}
+				title={sprintf(
+					__('Enquiry Details - %s', 'directorist'),
+					matchedEnquiry?.listing_title || __('Unknown Listing', 'directorist')
+				)}
 				onRequestClose={onClose}
 				className="directorist-enquiry-modal"
 				size="large"
@@ -241,7 +245,7 @@ export default function EnquiryDetailsModal({
 											alt={
 												box === 'send'
 													? matchedEnquiry?.recipient?.display_name
-													: matchedEnquiry?.user?.display_name
+													: getEnquirySenderName(matchedEnquiry)
 											}
 										/>
 									</div>
@@ -249,7 +253,7 @@ export default function EnquiryDetailsModal({
 										<h2>
 											{box === 'send'
 												? matchedEnquiry?.recipient?.display_name
-												: matchedEnquiry?.user?.display_name ||
+												: getEnquirySenderName(matchedEnquiry) ||
 													singleItem?.response?.username}
 											<span
 												className={`directorist-badge directorist-badge-${box === 'send' ? 'primary' : statusBadge(singleItem?.response?.is_read)}`}
@@ -266,7 +270,10 @@ export default function EnquiryDetailsModal({
 											</p>
 										)}
 										<span>
-											{formatRelativeDate(singleItem?.response?.created_at)}
+											{formatRelativeDate(
+												singleItem?.response?.created_at,
+												singleItem?.response?.created_at_timestamp
+											)}
 										</span>
 									</div>
 								</div>

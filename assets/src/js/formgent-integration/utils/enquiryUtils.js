@@ -3,6 +3,7 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { doAction } from '@wordpress/hooks';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * Utility functions for enquiry operations
@@ -68,8 +69,7 @@ export const getUserEmail = (enquiry) => {
  * @returns {string} - The listing title or 'Unknown Listing' if not found
  */
 export const getListingTitle = (enquiry) => {
-	if (!enquiry) return 'Unknown Listing';
-	return enquiry.listing_title || 'Unknown Listing';
+	return enquiry?.listing_title || __('Unknown Listing', 'directorist');
 };
 
 /**
@@ -244,7 +244,7 @@ export const sendEmailToUser = async (item) => {
 		} catch (error) {
 			console.error('Error loading enquiry email:', error);
 			doAction('helpgent-toast', {
-				message: 'Unable to load enquiry details. Please try again.',
+				message: __('Unable to load enquiry details. Please try again.', 'directorist'),
 				type: 'error',
 			});
 			return;
@@ -257,14 +257,14 @@ export const sendEmailToUser = async (item) => {
 	if (!userEmail) {
 		console.error('No user email found for enquiry:', enquiry);
 		doAction('helpgent-toast', {
-			message: 'No email address found for this enquiry.',
+			message: __('No email address found for this enquiry.', 'directorist'),
 			type: 'error',
 		});
 		return;
 	}
 
 	// Create mailto link with pre-filled fields
-	const subject = `Your Enquiry on ${listingTitle}`;
+	const subject = sprintf(__('Your Enquiry on %s', 'directorist'), listingTitle);
 	const mailtoLink = `mailto:${encodeURIComponent(userEmail)}?subject=${encodeURIComponent(subject)}`;
 
 	window.open(mailtoLink, '_self');
@@ -325,7 +325,7 @@ export const getStatusBadgeClass = (isRead) => {
  * @returns {string} - The status badge text
  */
 export const getStatusBadgeText = (isRead) => {
-	return isRead === '1' ? 'Read' : 'New';
+	return String(isRead) === '1' ? __('Read', 'directorist') : __('New', 'directorist');
 };
 
 /**
@@ -577,11 +577,18 @@ function normalizeDateInput(value, { assumeUTC = false } = {}) {
 	return Number.isNaN(localParsed.getTime()) ? null : localParsed;
 }
 
-export const formatRelativeDate = (dateString) => {
-	if (!dateString) return '';
+export const formatRelativeDate = (dateString, timestamp = null) => {
+	// Prefer the database's epoch value: bare TIMESTAMP strings use its session timezone.
+	const hasTimestamp =
+		timestamp !== null &&
+		timestamp !== '' &&
+		Number.isFinite(Number(timestamp));
+	if (!hasTimestamp && !dateString) return '';
 
-	// MySQL-style datetimes have no timezone; treat them as UTC
-	const date = normalizeDateInput(dateString, { assumeUTC: true });
+	const date = normalizeDateInput(
+		hasTimestamp ? Number(timestamp) * 1000 : dateString,
+		{ assumeUTC: true }
+	);
 	if (!date) return dateString;
 
 	const now = new Date();
@@ -591,6 +598,15 @@ export const formatRelativeDate = (dateString) => {
 	const diffHours = Math.floor(diffMinutes / 60);
 	const diffDays = Math.floor(diffHours / 24);
 
+	if (diffMs < 0) {
+		return date.toLocaleString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit',
+		});
+	}
 	if (diffSeconds < 60) {
 		return 'just now';
 	}
@@ -610,4 +626,12 @@ export const formatRelativeDate = (dateString) => {
 		month: 'short',
 		day: 'numeric',
 	});
+};
+
+/** Keep the guest fallback in the dashboard language, preserving real display names. */
+export const getEnquirySenderName = (enquiry) => {
+	const user = enquiry?.user;
+	return user && String(user.ID) === '0'
+		? __('Guest', 'directorist')
+		: user?.display_name || enquiry?.username || '';
 };
