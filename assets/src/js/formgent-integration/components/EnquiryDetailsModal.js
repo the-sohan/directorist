@@ -317,7 +317,12 @@ export default function EnquiryDetailsModal({
 										className="directorist-enquiry-modal-btn directorist-enquiry-modal-btn-reply"
 										aria-label={__('Send Email', 'directorist')}
 										title={__('Send Email', 'directorist')}
-										onClick={() => handleSendEmail(singleItem?.response)}
+										onClick={() =>
+										handleSendEmail({
+											...matchedEnquiry,
+											...singleItem?.response,
+										})
+									}
 									>
 										<Reply />
 										<span>{__('Send Email', 'directorist')}</span>
