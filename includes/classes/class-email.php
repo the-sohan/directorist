@@ -37,8 +37,8 @@ if ( ! class_exists( 'ATBDP_Email' ) ) :
             add_action( 'atbdp_after_renewal', [ $this, 'notify_owner_listing_renewed' ] );
             add_action( 'atbdp_after_renewal', [ $this, 'notify_admin_listing_renewed' ] );
             /*Fire up email for deleted/trashed listings*/
-            add_action( 'atbdp_deleted_expired_listings', [ $this, 'notify_owner_listing_deleted' ] );
-            add_action( 'atbdp_deleted_expired_listings', [ $this, 'notify_admin_listing_deleted' ] );
+            add_action( 'trashed_post', [ $this, 'notify_listing_deleted' ] );
+            add_action( 'before_delete_post', [ $this, 'notify_before_listing_deleted' ] );
             /*Fire up emails when a general user apply for become author user*/
             add_action( 'atbdp_become_author', [ $this, 'notify_admin_become_author' ] );
             // add_action('atbdp_become_author', array($this, 'notify_owner_become_author'));
@@ -1078,6 +1078,33 @@ This email is sent automatically for information purpose only. Please do not res
             $message = atbdp_email_html( $subject, $body );
 
             return $this->send_mail( $this->get_admin_email_list(), $subject, $message, $this->get_email_headers() );
+        }
+
+        /**
+         * Send deletion emails while the listing data is still available.
+         *
+         * @param int $listing_id Listing ID.
+         */
+        public function notify_listing_deleted( $listing_id ) {
+            if ( ATBDP_POST_TYPE !== get_post_type( $listing_id ) ) {
+                return;
+            }
+
+            $this->notify_owner_listing_deleted( $listing_id );
+            $this->notify_admin_listing_deleted( $listing_id );
+        }
+
+        /**
+         * Notify for direct permanent deletion, skipping previously trashed listings.
+         *
+         * @param int $listing_id Listing ID.
+         */
+        public function notify_before_listing_deleted( $listing_id ) {
+            if ( 'trash' === get_post_status( $listing_id ) ) {
+                return;
+            }
+
+            $this->notify_listing_deleted( $listing_id );
         }
 
         /**
