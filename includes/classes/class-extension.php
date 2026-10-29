@@ -565,6 +565,7 @@ if ( ! class_exists( 'ATBDP_Extensions' ) ) {
                     'thumbnail'   => ATBDP_URL . 'assets/images/extensions/Paystack-Payment-Gateway.jpg',
                     'active'      => true,
                     'item_id'     => 372738,
+                    'badges'      => [ self::get_product_badge( 'new', __( 'New', 'directorist' ) ) ],
                 ],
                 'directorist-elementor' => [
                     'name'        => 'Directorist Elementor Integration',
