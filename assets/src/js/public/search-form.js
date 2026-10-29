@@ -2644,16 +2644,29 @@ document.addEventListener('DOMContentLoaded', () => {
 				return '.directorist-search-form-wrap, .directorist-search-form, .directorist-search-modal, .directorist-search-adv-filter';
 			}
 
-			const getFieldValueFn = (fieldKey) =>
-				getFieldValueBase(fieldKey, jQuery, getSearchFormWrapper());
-			const evaluateConditionalLogicFn = (conditionalLogic) =>
-				evaluateConditionalLogicBase(conditionalLogic, getFieldValueFn);
-			const applyConditionalLogicFn = ($fieldWrapper) =>
+			const getFieldValueFn = (
+				fieldKey,
+				scope = getSearchFormWrapper()
+			) => getFieldValueBase(fieldKey, jQuery, scope);
+			const applyConditionalLogicFn = ($fieldWrapper) => {
+				// The archive's basic and sidebar forms share one filter context.
+				// Independent search forms, such as a header popup, must stay separate.
+				const $context = $fieldWrapper.closest(
+					'.directorist-archive-contents, .directorist-search-contents'
+				);
+				const $scope = $context.length
+					? $context
+					: $fieldWrapper.closest('form');
+
 				applyConditionalLogicBase(
 					$fieldWrapper,
-					evaluateConditionalLogicFn,
+					(conditionalLogic) =>
+						evaluateConditionalLogicBase(conditionalLogic, (fieldKey) =>
+							getFieldValueFn(fieldKey, $scope)
+						),
 					jQuery
 				);
+			};
 
 			watchFieldChangesBase(
 				getSearchFormWrapper,
