@@ -222,7 +222,7 @@ class Directorist_Listings {
     ];
 
     public function __construct( $atts = [], $type = 'listing', $query_args = false, array $caching_options = [] ) {
-        $this->atts = ! empty( $atts ) ? $atts : [];
+        $this->atts = apply_filters( 'directorist_directory_attributes', ! empty( $atts ) ? $atts : [] );
         $this->type = ! empty( $type ) ? $type : 'listing';
 
         $this->set_options();
@@ -1561,6 +1561,9 @@ class Directorist_Listings {
             $directory = array_key_first( $this->get_listing_types() );
         }
 
+        // Resolve source-language slugs before Polylang filters the term lookup.
+        $directory = apply_filters( 'directorist_current_directory', $directory );
+
         if ( ! is_numeric( $directory ) ) {
             $directory_term = get_term_by( 'slug', $directory, ATBDP_DIRECTORY_TYPE );
             $directory      = $directory_term ? $directory_term->term_id : 0;
@@ -1570,7 +1573,7 @@ class Directorist_Listings {
             return (int) $directory;
         }
 
-        return directorist_get_default_directory();
+        return (int) apply_filters( 'directorist_current_directory', directorist_get_default_directory() );
     }
 
     public function get_directory_type_slug() {
