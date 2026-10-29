@@ -1028,15 +1028,13 @@ class Directorist_Listings {
                 } else {
                     $field_type = str_replace( 'custom-', '', $key );
                     $field_type = preg_replace( '/([!^0-9])|(-)/', '', $field_type ); //replaces any additional numbering to just keep the field name, for example if previous line gives us "text-2", this line makes it "text"
-                    // Check if $values contains a hyphen
-                    if ( 'number' === $field_type && strpos( $values, '-' ) !== false ) {
-                        // If $values is in the format "40-50", create a range query
-                        list( $min_value, $max_value ) = array_map( 'intval', explode( '-', $values ) );
-                        
-                        if ( ! empty( $max_value ) && 0 < $max_value ) {
+                    $number_range = 'number' === $field_type ? directorist_parse_number_range( $values ) : null;
+                    if ( null !== $number_range ) {
+                        // "0-0" is the slider's existing inactive/reset value.
+                        if ( [ 0, 0 ] !== $number_range ) {
                             $meta_query = [
                                 'key'     => '_' . $key,
-                                'value'   => [ $min_value, $max_value ],
+                                'value'   => $number_range,
                                 'type'    => 'NUMERIC',
                                 'compare' => 'BETWEEN',
                             ];
