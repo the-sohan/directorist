@@ -1,3 +1,4 @@
+import { setGoogleSearchLocation } from './components/google-search-location';
 import {
 	applyConditionalLogic as applyConditionalLogicBase,
 	evaluateConditionalLogic as evaluateConditionalLogicBase,
@@ -1744,17 +1745,12 @@ document.addEventListener('DOMContentLoaded', () => {
 								autocomplete,
 								'place_changed',
 								function () {
-									let place = autocomplete.getPlace();
-									elm
-										.closest('.directorist-search-field')
-										.querySelector(
-											`#${field.lat_id}`
-										).value = place.geometry.location.lat();
-									elm
-										.closest('.directorist-search-field')
-										.querySelector(
-											`#${field.lng_id}`
-										).value = place.geometry.location.lng();
+									setGoogleSearchLocation(
+										elm,
+										autocomplete.getPlace(),
+										field.lat_id,
+										field.lng_id
+									);
 								}
 							);
 						});
