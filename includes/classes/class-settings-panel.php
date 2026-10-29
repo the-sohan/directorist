@@ -4890,6 +4890,18 @@ Best regards,
 
             $this->config = [
                 'fields_theme' => 'butterfly',
+                /**
+                 * Filters setting keys that select a payment gateway environment.
+                 *
+                 * Registered selectors keep their sections enabled in either mode
+                 * and exclude inactive environment fields from settings search.
+                 *
+                 * @param string[] $keys Gateway environment selector setting keys.
+                 */
+                'gateway_mode_keys' => array_values( array_filter( (array) apply_filters(
+                    'directorist_settings_gateway_mode_keys',
+                    ['stripe_gateway_test_mode', 'paypal_gateway_test_mode']
+                ), 'is_string' ) ),
                 'submission' => [
                     'url' => admin_url( 'admin-ajax.php' ),
                     'with' => [

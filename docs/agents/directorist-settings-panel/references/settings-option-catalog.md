@@ -327,6 +327,8 @@ Redesigned UI note (2026-06-10): payment gateway extension submenus registered t
 
 Stripe and PayPal extension visibility (verified 2026-10-07): `stripe_gateway_test_mode` and `paypal_gateway_test_mode` select the visible credential/webhook environment in their respective settings tabs. Off shows only that gateway's live credential and live webhook fields; on shows only its test/sandbox credential and webhook fields. Gateway title and description stay visible in both modes. Hidden environment values and saved webhook IDs remain stored; switching modes does not disconnect them. The mode change is persisted only after Save changes.
 
+Gateway environment registration (2026-10-26): extensions can append their own selector setting keys through `directorist_settings_gateway_mode_keys`. The builder exposes these as `config.gateway_mode_keys`, shared by credential search and section enabled styling. The existing Stripe/PayPal keys are defaults. This is runtime metadata and adds no saved option or migration.
+
 Webhook credential locking is opt-in (verified 2026-10-07): Core locks a saved webhook's matching Stripe/PayPal credential fields only when that extension's webhook field declares `'async-action' => true`. Older extension versions without this field metadata keep the legacy redirect button and editable credentials after a Core-only update. The guard reads field metadata and does not change option keys or saved webhook IDs.
 
 ## Personalization
