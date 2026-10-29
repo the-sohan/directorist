@@ -12942,3 +12942,89 @@ msgstr ""
 #: ../views/admin-templates/theme-extensions/statistics/statistics.php:57
 msgid "Theme updates Available"
 msgstr ""
+
+#: includes/asset-loader/localized_data.php:418
+msgid "Read"
+msgstr ""
+
+#. translators: %s: listing title.
+#: includes/asset-loader/localized_data.php:420
+msgid "Enquiry Details - %s"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:421
+msgid "Regarding Listing"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:423
+msgid "Marked as read"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:426
+msgid "Close enquiry details"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:427
+msgid "Loading enquiry details..."
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:428
+msgid "Submitted"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:429
+msgid "Unknown Listing"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:430
+msgid "Answer"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:431
+msgid "No answer provided"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:432
+msgid "Failed to load enquiry details"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:433
+msgid "Reply by email"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:434
+msgid "To"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:435
+msgid "Subject"
+msgstr ""
+
+#. translators: %s: listing title.
+#: includes/asset-loader/localized_data.php:437
+msgid "Your Enquiry on %s"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:438
+msgid "Choose where to write your reply. You will review and send it from your email account."
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:439
+msgid "Open email app"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:440
+msgid "Open Gmail"
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:441
+msgid "If your email app does not open, use Gmail or copy the address and subject into your webmail."
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:442
+msgid "Unable to load enquiry details. Please try again."
+msgstr ""
+
+#: includes/asset-loader/localized_data.php:443
+msgid "No email address found for this enquiry."
+msgstr ""

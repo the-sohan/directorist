@@ -3,6 +3,7 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { doAction } from '@wordpress/hooks';
+import { __, sprintf } from '@wordpress/i18n';
 
 /**
  * Utility functions for enquiry operations
@@ -53,8 +54,7 @@ export const getUserEmail = (enquiry) => {
  * @returns {string} - The listing title or 'Unknown Listing' if not found
  */
 export const getListingTitle = (enquiry) => {
-	if (!enquiry) return 'Unknown Listing';
-	return enquiry.listing_title || 'Unknown Listing';
+	return enquiry?.listing_title || __('Unknown Listing', 'directorist');
 };
 
 /**
@@ -223,14 +223,14 @@ export const sendEmailToUser = (item) => {
 	if (!userEmail) {
 		console.error('No user email found for enquiry:', enquiry);
 		doAction('helpgent-toast', {
-			message: 'No email address found for this enquiry.',
+			message: __('No email address found for this enquiry.', 'directorist'),
 			type: 'error',
 		});
 		return;
 	}
 
 	// Create mailto link with pre-filled fields
-	const subject = `Your Enquiry on ${listingTitle}`;
+	const subject = sprintf(__('Your Enquiry on %s', 'directorist'), listingTitle);
 	const mailtoLink = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}`;
 
 	// Open native email client
@@ -292,7 +292,7 @@ export const getStatusBadgeClass = (isRead) => {
  * @returns {string} - The status badge text
  */
 export const getStatusBadgeText = (isRead) => {
-	return isRead === '1' ? 'Read' : 'New';
+	return String(isRead) === '1' ? __('Read', 'directorist') : __('New', 'directorist');
 };
 
 /**
@@ -593,4 +593,12 @@ export const formatRelativeDate = (dateString, timestamp = null) => {
 		month: 'short',
 		day: 'numeric',
 	});
+};
+
+/** Keep the guest fallback in the dashboard language, preserving real display names. */
+export const getEnquirySenderName = (enquiry) => {
+	const user = enquiry?.user;
+	return user && String(user.ID) === '0'
+		? __('Guest', 'directorist')
+		: user?.display_name || enquiry?.username || '';
 };

@@ -28,6 +28,8 @@ import {
 	bulkDeleteEnquiries,
 	sendEmailToUser,
 	getStatusBadgeClass,
+	getStatusBadgeText,
+	getEnquirySenderName,
 	extractEnquiryTitleAndPrefix,
 	enrichEnquiriesWithAnswers,
 	formatRelativeDate,
@@ -64,7 +66,7 @@ export default function Tables(props) {
 
 	// Get enquiry status text
 	const getEnquiryStatusText = (status) => {
-		return status === '0' ? 'new' : 'read';
+		return getStatusBadgeText(status);
 	};
 
 	// Define fields configuration for DataViews
@@ -146,11 +148,11 @@ export default function Tables(props) {
 										<div className="directorist-table-enquiry-sender-avatar">
 											<img
 												src={item.user?.profile_url}
-												alt={item.user?.display_name}
+												alt={getEnquirySenderName(item)}
 											/>
 										</div>
 										<div className="directorist-table-enquiry-sender-info">
-											<h2>{item.user?.display_name}</h2>
+											<h2>{getEnquirySenderName(item)}</h2>
 											<p>{item.user?.user_email}</p>
 										</div>
 									</div>
