@@ -296,7 +296,11 @@ export default new Vuex.Store({
 
 		importFields: (state, importing_fields) => {
 			for (let field_key in importing_fields) {
-				if (typeof importing_fields[field_key] === 'undefined') {
+				// Exports can include fields from unavailable extensions or directories.
+				if (
+					typeof importing_fields[field_key] === 'undefined' ||
+					!Object.prototype.hasOwnProperty.call(state.fields, field_key)
+				) {
 					continue;
 				}
 
