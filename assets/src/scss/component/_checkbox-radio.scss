@@ -20,6 +20,10 @@
         white-space: nowrap;
         border: 0;
 
+        &[hidden] {
+            display: none !important;
+        }
+
         &:focus {
             & +.directorist-checkbox__label:after,
             & +.directorist-radio__label:after {

@@ -1,6 +1,6 @@
 /* Run: node tests/checkbox-radio-accessibility.cjs
  * Compiles the actual component and resolves its cascade against native controls.
- * The browser focus/keyboard smoke check is deferred to the coordinated QA window.
+ * These DOM checks do not replace trusted-browser keyboard QA.
  */
 const assert = require('node:assert/strict');
 const { createRequire } = require('node:module');
@@ -24,8 +24,25 @@ const document = new JSDOM(`
       <input id="author" name="type" type="radio" checked>
       <label for="author" class="directorist-radio__label">Author</label>
     </div>
+    <div class="directorist-checkbox">
+      <input id="hidden-consent" type="checkbox" hidden>
+      <label for="hidden-consent" class="directorist-checkbox__label">Hidden consent</label>
+    </div>
+    <div class="directorist-radio">
+      <input id="hidden-author" type="radio" hidden>
+      <label for="hidden-author" class="directorist-radio__label">Hidden author</label>
+    </div>
+    <div id="hidden-ancestor" hidden>
+      <div class="directorist-checkbox">
+        <input id="ancestor-consent" type="checkbox">
+        <label for="ancestor-consent" class="directorist-checkbox__label">Ancestor-hidden consent</label>
+      </div>
+    </div>
     <input id="unrelated" type="checkbox">
   </form>`).window.document;
+const style = document.createElement('style');
+style.textContent = css;
+document.head.append(style);
 
 function styleFor(element, { focus = false, checked = false, pseudo = '' } = {}) {
     const styles = new Map();
@@ -71,10 +88,19 @@ for (const id of ['consent', 'author']) {
 }
 
 assert.deepEqual(styleFor(document.getElementById('unrelated')), {}, 'Unrelated native inputs are not restyled');
+for (const id of ['hidden-consent', 'hidden-author']) {
+    const input = document.getElementById(id);
+    assert.equal(document.defaultView.getComputedStyle(input).display, 'none', `${id}: native hidden must not be overridden`);
+    input.hidden = false;
+    assert.equal(document.defaultView.getComputedStyle(input).display, 'block', `${id}: removing hidden restores the native control`);
+    input.hidden = true;
+    assert.equal(document.defaultView.getComputedStyle(input).display, 'none', `${id}: reapplying hidden excludes the control again`);
+}
+assert.equal(document.defaultView.getComputedStyle(document.getElementById('hidden-ancestor')).display, 'none', 'A hidden ancestor remains hidden');
 const consent = document.getElementById('consent');
 assert.equal(consent.validity.valueMissing, true, 'Required consent validation is retained');
 document.querySelector('label[for="consent"]').click();
 assert.equal(consent.checked, true, 'Label activation still toggles native state');
 assert.equal(consent.validity.valueMissing, false);
 assert.equal(document.querySelector('a').tabIndex, 0, 'The nested policy link remains keyboard reachable');
-console.log('PASS: native checkbox/radio cascade, focus styles, labels and required validation.');
+console.log('PASS: native checkbox/radio cascade, hidden state, focus styles, labels and required validation.');
