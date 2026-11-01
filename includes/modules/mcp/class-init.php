@@ -25,7 +25,8 @@ class Init {
 
         Admin\Settings_Integration::register_hooks();
 
-        add_action( 'plugins_loaded', [ Registration\Tool_Registry::class, 'instance' ], PHP_INT_MAX );
+        // Tool descriptions need translations; build after textdomain setup (10), before the MCP adapter (20).
+        add_action( 'init', [ Registration\Tool_Registry::class, 'instance' ], 15 );
 
         foreach ( [ 'activated_plugin', 'deactivated_plugin', 'upgrader_process_complete' ] as $hook ) {
             add_action( $hook, [ Extensions\Extension_Lifecycle::class, 'lifecycle' ] );

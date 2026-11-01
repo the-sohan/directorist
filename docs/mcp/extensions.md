@@ -2,7 +2,7 @@
 
 Start with the [complete extension tool example](extension-tool-example.md) for a runnable plugin, owner and tool registration, permissions, schemas, and the read → preview → execute → retry flow. The guide includes the full source and MCP request examples.
 
-Register during directorist_mcp_register, before ability/server construction. Directorist builds the inventory independently of the current user; live discovery and execution apply authentication afterward. The registry runs once per request and seals after registration. Return values from registration are true or safe WP_Error; one rejected contribution cannot replace an existing owner/name. Catchable registration failures are isolated. Registered PHP remains trusted server code, not a sandbox.
+Register during directorist_mcp_register, before ability/server construction. This hook runs at init priority 15, after Directorist's textdomain setup, so tool descriptions can be translated safely. Attach registration callbacks during plugin loading or before that init priority. Directorist builds the inventory independently of the current user; live discovery and execution apply authentication afterward. The registry runs once per request and seals after registration. Return values from registration are true or safe WP_Error; one rejected contribution cannot replace an existing owner/name. Catchable registration failures are isolated. Registered PHP remains trusted server code, not a sandbox.
 
 ## Owner and tool contracts
 
