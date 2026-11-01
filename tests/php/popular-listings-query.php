@@ -14,16 +14,18 @@ function apply_filters( $hook, $value ) {
     return $value;
 }
 
-function directorist_get_rating_field_meta_key() {
-    return '_directorist_listing_rating';
-}
-
 function get_post_type( $listing_id ) {
     return ATBDP_POST_TYPE;
 }
 
 function get_post_meta( $listing_id, $key, $single = false ) {
-    return '_atbdp_post_views_count' === $key ? $GLOBALS['directorist_popular_test_views'][ $listing_id ] : '';
+    if ( '_atbdp_post_views_count' === $key ) {
+        return $GLOBALS['directorist_popular_test_views'][ $listing_id ];
+    }
+    if ( '_directorist_listing_rating' === $key ) {
+        return $GLOBALS['directorist_popular_test_ratings'][ $listing_id ];
+    }
+    return '';
 }
 
 function absint( $value ) {
@@ -32,10 +34,6 @@ function absint( $value ) {
 
 function get_directorist_option( $key, $default = null ) {
     return $GLOBALS['directorist_popular_test_options'][ $key ] ?? $default;
-}
-
-function directorist_get_listing_rating( $listing_id ) {
-    return $GLOBALS['directorist_popular_test_ratings'][ $listing_id ];
 }
 
 function directorist_is_featured_listing_enabled() {
@@ -62,6 +60,8 @@ require ABSPATH . 'includes/helpers/trait-markup-helper.php';
 require ABSPATH . 'includes/helpers/trait-icon-helper.php';
 require ABSPATH . 'includes/class-helper.php';
 require ABSPATH . 'includes/helper-functions.php';
+require ABSPATH . 'includes/review/class-listing-review-meta.php';
+require ABSPATH . 'includes/review/directorist-review-functions.php';
 require ABSPATH . 'includes/widgets/popular-listings.php';
 
 class Directorist_Popular_Query_Test_Listings extends Directorist\Directorist_Listings {
@@ -123,7 +123,7 @@ foreach ( [ false, true ] as $featured ) {
             $rating             = $meta['_rating'];
             $check( '>=' === $rating['compare'], $label . ': rating uses a minimum threshold' );
             $check( 'DECIMAL(3,2)' === ( $rating['type'] ?? '' ), $label . ': rating comparison retains fractional averages' );
-            foreach ( [ [ $threshold - .1, false ], [ $threshold, true ], [ $threshold + .1, true ] ] as $case ) {
+            foreach ( [ [ $threshold - .1, false ], [ $threshold - .01, false ], [ $threshold, true ], [ $threshold + .01, true ], [ $threshold + .1, true ] ] as $case ) {
                 $check( $case[1] === $matches( $rating, $case[0] ), $label . ': rating ' . $case[0] . ' at threshold ' . $threshold );
             }
             if ( 'both' === $mode ) {
@@ -152,6 +152,13 @@ foreach ( [ false, true ] as $featured ) {
     $check( '>=' === $meta['_rating']['compare'], 'The existing views-desc popularity path uses the same minimum rating.' );
 }
 
+// Exercise native rounding, not a rating stub that hides the display precision default.
+foreach ( [ [ 3.99, 4.0 ], [ 4.49, 4.5 ] ] as $rounding_case ) {
+    $GLOBALS['directorist_popular_test_ratings'] = [ 1 => $rounding_case[0] ];
+    $check( $rounding_case[1] === directorist_get_listing_rating( 1 ), 'Native default display precision is unchanged for ' . $rounding_case[0] );
+    $check( $rounding_case[0] === directorist_get_listing_rating( 1, 2 ), 'Native eligibility precision retains stored hundredths for ' . $rounding_case[0] );
+}
+
 // Execute both actual helper implementations and the actual widget query builder.
 $widget = ( new ReflectionClass( Directorist\Widgets\Popular_Listings::class ) )->newInstanceWithoutConstructor();
 foreach ( [ false, true ] as $featured ) {
@@ -178,7 +185,7 @@ foreach ( [ false, true ] as $featured ) {
                 $check( (float) $threshold === $meta['_rating']['value'], $label . ': fractional threshold is preserved' );
                 $check( ( 'both' === $mode ) === isset( $meta['views'] ), $label . ': view condition only when combined' );
             }
-            foreach ( [ $threshold - .1, $threshold, $threshold + .1 ] as $rating ) {
+            foreach ( [ $threshold - .1, $threshold - .01, $threshold, $threshold + .01, $threshold + .1 ] as $rating ) {
                 foreach ( [ 99, 100, 101 ] as $views ) {
                     $GLOBALS['directorist_popular_test_ratings'] = [ 1 => $rating ];
                     $GLOBALS['directorist_popular_test_views']   = [ 1 => $views ];
