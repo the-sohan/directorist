@@ -23,13 +23,19 @@ class Assets {
             'clipboard'              => [ 'utilities/clipboard.js', [] ],
             'modal-accessibility'    => [ 'utilities/modal-accessibility.js', [] ],
             'client-configuration'   => [ 'components/client-configuration.js', [] ],
-            'connection-drawer'      => [ 'components/connection-drawer.js', [ 'api-client', 'snippets', 'clipboard', 'modal-accessibility', 'client-configuration' ] ],
+            'connection-drawer'      => [ 'components/connection-drawer.js', [ 'api-client', 'snippets', 'clipboard', 'client-configuration' ] ],
             'configuration-field'    => [ 'components/configuration-field.js', [ 'api-client', 'adapter-installer', 'connection-drawer' ] ],
             'settings-panel-adapter' => [ 'settings-panel-adapter.js', [] ],
         ];
         foreach ( $scripts as $name => $script ) {
             $dependencies = array_map( static function ( $dependency ) { return 'directorist-mcp-' . $dependency; }, $script[1] );
+            if ( in_array( $name, [ 'client-configuration', 'connection-drawer', 'configuration-field' ], true ) ) {
+                $dependencies[] = 'wp-i18n';
+            }
             wp_register_script( 'directorist-mcp-' . $name, ATBDP_URL . 'assets/src/js/admin/mcp/' . $script[0], $dependencies, ATBDP_VERSION, true );
+            if ( in_array( 'wp-i18n', $dependencies, true ) && function_exists( 'wp_set_script_translations' ) ) {
+                wp_set_script_translations( 'directorist-mcp-' . $name, 'directorist', ATBDP_DIR . 'languages' );
+            }
         }
         wp_enqueue_script( 'directorist-mcp-settings', ATBDP_URL . 'assets/src/js/admin/mcp/init.js', [ 'directorist-settings-manager', 'directorist-mcp-configuration-field', 'directorist-mcp-settings-panel-adapter' ], ATBDP_VERSION, true );
         wp_enqueue_style( 'directorist-mcp-base', ATBDP_URL . 'assets/src/css/admin/mcp/base.css', [], ATBDP_VERSION );

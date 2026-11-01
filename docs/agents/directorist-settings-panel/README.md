@@ -66,7 +66,6 @@ http://directorist-core.local/wp-admin/edit.php?post_type=at_biz_dir&page=atbdp-
 - `SKILL.md`: the actual agent instructions
 - `references/current-settings-panel-map.md`: architecture map and known limitations
 - `references/settings-option-catalog.md`: grouped settings option map with purpose notes
-- `templates/feasibility-report.md`: reusable report template
 
 ## Maintenance
 

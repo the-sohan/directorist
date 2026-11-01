@@ -34,10 +34,6 @@
   font-size: 12px;
   color: #535b67;
 }
-.directorist-mcp-badge.is-active {
-  background: #e7f6ed;
-  color: #187840;
-}
 .directorist-mcp-button {
   border: 1px solid #d8dce3 !important;
   border-radius: 6px !important;
@@ -60,10 +56,13 @@
 }
 .directorist-mcp-button:focus-visible,
 .directorist-mcp-link:focus-visible,
-.directorist-mcp-tabs button:focus-visible,
-.directorist-mcp-close:focus-visible {
+.directorist-mcp-tabs button:focus-visible {
   outline: 2px solid #3e62f5;
   outline-offset: 3px;
+}
+.directorist-mcp-icon-button:focus-visible {
+  outline: 2px solid #3e62f5;
+  outline-offset: -2px;
 }
 .directorist-mcp-switch {
   position: relative;

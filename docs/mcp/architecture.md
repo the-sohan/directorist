@@ -50,18 +50,18 @@ The **Registry** pattern provides one inventory, **Strategy** selects feature ca
 
 ## Connection UI without a build
 
-`admin/Assets` registers ten scripts with explicit WordPress dependencies. `assets/src/js/admin/mcp/init.js` installs the field through `DirectoristSettingsPanel`; it waits for the existing registry-ready event when needed.
+`admin/Assets` registers the directly shipped scripts with explicit WordPress dependencies, including `wp-i18n` and script translations for the three UI components. `assets/src/js/admin/mcp/init.js` installs the field through `DirectoristSettingsPanel`; it waits for the existing registry-ready event when needed.
 
 - `configuration-field.js` owns enablement, confirmed status and independent native AJAX saves.
-- `connection-drawer.js` owns the open drawer, transient credentials, template requests and feedback. Closing or destroying it clears credential inputs and cancels its requests.
-- `client-configuration.js` renders client tabs and the derived snippet. It emits selection/copy events and stores no credential state.
+- `connection-drawer.js` retains its filename/factory/event API but renders the inline three-step setup. It owns temporary current/alternate account credentials, template requests and action-specific copy feedback. Closing or destroying it clears credential inputs, timers and requests; obsolete copy results cannot overwrite the current action.
+- `client-configuration.js` renders selectable app cards, the credential slot and the immediately available derived snippet. It emits selection/copy events and stores no credential state.
 - `api-client.js` owns cancellation and nonce-authenticated requests. Configuration is passed into its factory.
 - `adapter-installer.js` sequences native WordPress `install-plugin`/`activate-plugin` AJAX calls with the separate `updates` nonce. `admin/Adapter_Setup` reports installed/active state and setup permissions. The field owns the spinner and refreshes readiness after setup without changing enablement.
 - `snippets.js` constructs configuration locally; it retains no arguments/results. `clipboard.js` clears temporary fallback textareas in `finally`.
-- `modal-accessibility.js` handles keyboard trapping, background inert state and body scrolling. The field restores focus after closing.
+- `modal-accessibility.js` is retained as a legacy helper and is no longer a connection component dependency. The inline region uses normal page focus flow; the field restores focus after collapsing it.
 - `settings-panel-adapter.js` preserves the established menu/store integration and excludes only `mcp_enabled` from general settings saves.
 
-The `DirectoristMcp` namespace contains factories and helpers, never credential or snippet storage. The three CSS files retain the original declaration order and selectors. MCP sources live under `assets/src/js/admin/mcp/` and `assets/src/css/admin/mcp/`. Distribution filters and the legacy ZIP packaging step retain exactly those two source subtrees; unrelated source files remain excluded. No bundler or settings-manager rebuild is required.
+The `DirectoristMcp` namespace contains factories and helpers, never credential or snippet storage. Three scoped CSS files style the field, inline setup and responsive controls. MCP sources live under `assets/src/js/admin/mcp/` and `assets/src/css/admin/mcp/`. Distribution filters and the legacy ZIP packaging step retain exactly those two source subtrees; unrelated source files remain excluded. No bundler or settings-manager rebuild is required.
 
 ## Adding or modifying a tool
 
@@ -86,7 +86,7 @@ The MCP automated test suites and fixtures are not included in this branch; `/te
 
 Builder operations infer a submission source for a new search or layout widget when exactly one matching field exists, or its ID matches a source field. With multiple matching fields, provide `changes.original_widget_key` using the submission field ID. Explicit links must match the widget type. Add standalone single-listing widgets such as `author_info` and `related_listings` with `entity: "section"` and `widget` set to their native widget name; their options are updated through the section ID. Normal sections receive native `section_id` values for shortcode use. Reorder operations require every sibling ID in `order`, and field reorders also require the target `section_id`.
 
-See the [feasibility report](settings-panel-refactor-feasibility.md) for settings integration risks and the [verification record](verification.md) for observed checks and remaining release gates.
+See the [verification record](verification.md) for observed checks and remaining release gates.
 
 ## File tree
 
