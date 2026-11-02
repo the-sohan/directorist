@@ -1159,7 +1159,8 @@ $(function () {
 	});
 
 	function addSticky() {
-		$(window).scroll(
+		$(window).on(
+			'scroll resize',
 			debounce(function () {
 				var windowWidth = $(window).width();
 				var sidebarWidth = $('.multistep-wizard__nav').width();
