@@ -137,8 +137,8 @@ sandbox.fetch = async (url, options) => {
 	requests++;
 	assert.equal(url, 'https://example.test/connect');
 	assert.equal(options.headers['X-Directorist-Async'], '1');
-	assert.equal(getActionFieldLock(fields, 'service_token').locked, true);
-	assert.equal(getActionFieldLock(fields, 'unrelated').locked, false);
+	assert.equal(getActionFieldLock(fields, 'service_token', cached).locked, true);
+	assert.equal(getActionFieldLock(fields, 'unrelated', cached).locked, false);
 	events.push('request');
 	return {
 		ok: true,
@@ -167,15 +167,15 @@ assert.equal(context.async_feedback.type, 'success');
 assert.equal(context.asyncButtonLabel, 'বিচ্ছিন্ন করুন');
 assert.equal(context.asyncStatusLabel, 'সংযুক্ত');
 assert.equal(fields.unrelated.value, 'unsaved-other-setting');
-assert.equal(getActionFieldLock(fields, 'service_token').locked, true);
+assert.equal(getActionFieldLock(fields, 'service_token', cached).locked, true);
 assert.equal(
-	getActionFieldLock(fields, 'service_token').message,
+	getActionFieldLock(fields, 'service_token', cached).message,
 	'আগে বিচ্ছিন্ন করুন'
 );
 fields.service_token.value = '';
 assert.equal(context.asyncActionBlocked, true);
 assert.equal(
-	getActionFieldLock(fields, 'service_user').locked,
+	getActionFieldLock(fields, 'service_user', cached).locked,
 	false,
 	'Missing dependencies keep a recovery path'
 );
@@ -268,7 +268,52 @@ sandbox.fetch = async () => ({
 });
 await context.submitAsyncAction();
 assert.equal(context.async_connected, false);
-assert.equal(getActionFieldLock(fields, 'service_token').locked, false);
+assert.equal(getActionFieldLock(fields, 'service_token', cached).locked, false);
+
+// Recovery must allow typing and correcting a complete credential before a successful save.
+for (const gateway of ['stripe', 'paypal']) {
+	for (const environment of ['test', 'live']) {
+		const keys = gateway === 'stripe'
+			? [`${gateway}_${environment}_pk`, `${gateway}_${environment}_sk`]
+			: [`${gateway}_${environment}_client_id`, `${gateway}_${environment}_secret`];
+		for (const missing of [[keys[0]], [keys[1]], keys]) {
+			const actionKey = `${gateway}_${environment}_webhook`;
+			const recoveryFields = {
+				[actionKey]: {
+					'async-action': true,
+					'async-action-state': { active: true },
+					'async-action-config': { requiredFields: keys, lockFields: keys },
+				},
+			};
+			for (const key of keys) recoveryFields[key] = { value: missing.includes(key) ? '' : 'saved' };
+			const recoveryCache = JSON.parse(JSON.stringify(recoveryFields));
+			for (const key of missing) {
+				for (const character of 'replacement-credential') {
+					assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, false);
+					recoveryFields[key].value += character;
+					assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, false,
+						`${key} stays editable after every character`);
+				}
+				recoveryFields[key].value = 'corrected-credential';
+			}
+			for (const key of keys) {
+				assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, false,
+					'An unacknowledged or failed save must not end recovery');
+			}
+			recoveryFields[actionKey].asyncActionPending = true;
+			for (const key of keys) assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, true);
+			recoveryFields[actionKey].asyncActionPending = false;
+			for (const key of missing) recoveryCache[key].value = recoveryFields[key].value;
+			for (const key of keys) {
+				assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, true,
+					'A successful credential save restores the connected lock');
+			}
+			recoveryFields[actionKey]['async-action-state'].active = false;
+			for (const key of keys) assert.equal(getActionFieldLock(recoveryFields, key, recoveryCache).locked, false);
+		}
+	}
+}
+console.log('PASS: Stripe/PayPal recovery supports character-by-character entry, correction, failed saves, pending locks, save acknowledgement, and disconnect.');
 
 for (const gateway of ['stripe', 'paypal'])
 	for (const environment of ['test', 'live']) {
@@ -289,7 +334,7 @@ for (const gateway of ['stripe', 'paypal'])
 		});
 		adaptLegacyWebhookFields(old);
 		assert.equal(
-			getActionFieldLock(old, keys[0]).locked,
+			getActionFieldLock(old, keys[0], old).locked,
 			false,
 			'Legacy non-async fields remain editable'
 		);
@@ -301,9 +346,9 @@ for (const gateway of ['stripe', 'paypal'])
 			new URL(old[key]['async-action-state'].url).searchParams.get('id'),
 			'saved-id'
 		);
-		assert.equal(getActionFieldLock(old, keys[0]).locked, true);
+		assert.equal(getActionFieldLock(old, keys[0], old).locked, true);
 		old[key]['async-action-state'].active = false;
-		assert.equal(getActionFieldLock(old, keys[0]).locked, false);
+		assert.equal(getActionFieldLock(old, keys[0], old).locked, false);
 		// Updated extensions bypass legacy inference even if raw option value is an array.
 		const explicit = {
 			...old[key],

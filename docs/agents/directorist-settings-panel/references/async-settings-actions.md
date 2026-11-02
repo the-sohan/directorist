@@ -48,7 +48,7 @@ On failure, return `success: false` and an actionable `message`. Core retains th
 
 - While inactive, `saveBeforeAction: true` saves only changed `requiredFields` through `save_settings_data`, then executes the action. Failure or edits detected during that save prevent the action.
 - While active, unsaved required fields block the action until saved. Missing fields keep the recovery path editable.
-- `lockFields` are disabled when active and all required fields exist, in both the text field and quick search. During a request, required/locked fields are disabled even before connection succeeds. These are UI guards, not server enforcement.
+- `lockFields` are disabled when active and all required fields exist in both live and cached (successfully saved) state, in both the text field and quick search. Recovery input remains editable while replacement credentials are typed or corrected, and after failed saves. A successful settings save updates the cache and restores the connected lock. During a request, required/locked fields are disabled even before connection succeeds. These are UI guards, not server enforcement.
 - Action-owned values are excluded from the normal settings save payload. This prevents a public UI identifier from overwriting provider-owned structured data, such as a saved signing secret.
 - An acknowledged action updates live and cached state together, so it does not create an unrelated unsaved settings change.
 - Set `search-respect-show-if: true` on fields whose quick-search visibility should use their existing `show-if` condition. This reuses the settings condition evaluator and does not change unrelated search behavior.

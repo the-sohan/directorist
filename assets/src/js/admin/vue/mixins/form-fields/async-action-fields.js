@@ -25,8 +25,8 @@ export const hasActionFieldValue = (value) =>
 		? value.trim().length > 0
 		: !Array.isArray(value) || value.length > 0);
 
-// Shared by the settings form and quick-search editor. Missing values retain recovery access.
-export function getActionFieldLock(fields, fieldKey) {
+// Shared by the settings form and quick-search editor. Recovery values stay editable until saved.
+export function getActionFieldLock(fields, fieldKey, cachedFields = {}) {
 	for (const field of Object.values(fields)) {
 		const config = field['async-action-config'];
 		if (field['async-action'] !== true || !config) continue;
@@ -41,7 +41,11 @@ export function getActionFieldLock(fields, fieldKey) {
 			field['async-action-state']?.active === true &&
 			actionFieldKeys(config.lockFields).includes(fieldKey) &&
 			required.every(
-				(key) => fields[key] && hasActionFieldValue(fields[key].value)
+				(key) =>
+					fields[key] &&
+					hasActionFieldValue(fields[key].value) &&
+					cachedFields[key] &&
+					hasActionFieldValue(cachedFields[key].value)
 			)
 		) {
 			return { locked: true, message: actionText(config.labels?.locked) };

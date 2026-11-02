@@ -37,7 +37,8 @@ export default {
     mixins: [ text_feild ],
 	computed: {
 		actionFieldLock() {
-			return getActionFieldLock(this.$store.state.fields, this.fieldKey);
+			const { fields, cached_fields } = this.$store.state;
+			return getActionFieldLock(fields, this.fieldKey, cached_fields);
 		},
 	},
     mounted() {

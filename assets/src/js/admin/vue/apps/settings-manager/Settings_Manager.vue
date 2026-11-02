@@ -471,8 +471,8 @@ export default {
                         controlType,
                         inputType: this.getQuickSearchInputType( liveField ),
                         value: liveField.value,
-                        locked: getActionFieldLock( this.fields, fieldKey ).locked,
-                        lockMessage: getActionFieldLock( this.fields, fieldKey ).message,
+                        locked: getActionFieldLock( this.fields, fieldKey, this.cached_fields ).locked,
+                        lockMessage: getActionFieldLock( this.fields, fieldKey, this.cached_fields ).message,
                         options,
                         matchText: this.getQuickSearchAliasMatchText( aliases, normalizedQuery ) ||
                             this.getQuickSearchMatchText( options, normalizedQuery ),
@@ -919,7 +919,7 @@ export default {
         updateQuickSearchFieldValue( payload ) {
             if ( ! payload || ! payload.fieldKey ) { return; }
             if ( ! this.fields[ payload.fieldKey ] ) { return; }
-            if ( getActionFieldLock( this.fields, payload.fieldKey ).locked ) { return; }
+            if ( getActionFieldLock( this.fields, payload.fieldKey, this.cached_fields ).locked ) { return; }
 
             this.$store.commit( 'updateFieldValue', {
                 field_key: payload.fieldKey,
