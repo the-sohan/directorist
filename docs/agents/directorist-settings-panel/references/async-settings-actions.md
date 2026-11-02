@@ -67,7 +67,7 @@ Do not remove the adapter based only on the status of an extension PR. It also p
 
 ## Verification
 
-Run `node tests/async-button-field-smoke.mjs` for arbitrary-service action state, translated labels, selective payload construction, pending/active locks, recovery, response validation, URL guards, legacy JSON, and non-async behavior.
+Verify arbitrary-service action state, translated labels, selective payload construction, pending/active locks, recovery, response validation, URL guards, legacy JSON, and non-async behavior. Recovery checks must include character-by-character entry and corrections in both the normal form and quick search, followed by failed and successful saves.
 
 For a targeted production build, load `webpack.legacy.dev.js`, select only `js/admin/settings-manager` and `css/admin/main` from its entry map, set `mode: 'production'` and `devtool: false`, then run Webpack. This emits settings JS and admin CSS/RTL without running the full packaging pipeline.
 

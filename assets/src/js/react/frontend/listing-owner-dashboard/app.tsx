@@ -11,7 +11,7 @@ import { moreVertical } from '@wordpress/icons';
  * External dependencies
  */
 import { Column } from '@shamim-ahmed/components/build-types/gutenberg/table/types';
-import { registerCrudStore, useCrudStore } from '@shamim-ahmed/data';
+import { useCrudStore } from '@shamim-ahmed/data';
 import { Table } from '@shamim-ahmed/dashboard';
 import moment from 'moment';
 
@@ -24,10 +24,13 @@ import { displayPrice } from '@/admin/helper/payment';
 import { getBadgeVariantByStatus } from '@/admin/helper/utils';
 import { OrderTableContainer } from './style';
 import { ActionsDropdownWrapper } from './style';
+import {
+	orderStoreName,
+	orderStorePath,
+	registerUserOrdersStore,
+} from './user-orders-store';
 
 const checkoutPageUrl = directorist_admin_order.checkout_page_url;
-const orderStoreName = 'directorist/orders';
-const orderStorePath = '/directorist/v2/orders';
 
 const baseColumns: Column[] = [
 	{
@@ -107,7 +110,7 @@ const baseColumns: Column[] = [
 ];
 
 export default function App() {
-	registerCrudStore({ name: orderStoreName, path: orderStorePath });
+	registerUserOrdersStore();
 	const { updateItem } = useCrudStore({ name: orderStoreName });
 	const [cancelItem, setCancelItem] = useState<any>(null);
 	const [isCancelling, setIsCancelling] = useState(false);
