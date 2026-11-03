@@ -304,6 +304,7 @@ Directorist comes with an AI-powered directory builder. Use the Create with AI o
 
 **Security**
 
+- Escaped listing author output in the admin listings table to prevent stored XSS.
 - Strengthened listing and order authorization for featured checkout and payment retries.
 
 = 8.10.7 - Nov 1, 2026 =
