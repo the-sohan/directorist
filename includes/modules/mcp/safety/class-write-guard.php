@@ -219,7 +219,7 @@ class Write_Guard {
         }
         if ( isset( $result['results'] ) ) {
             $result['results'] = array_map(
-                static function ( $item ) {
+                static function ( $item ) use ( $tool, $args ) {
                     if ( isset( $item['order_id'] ) ) {
                         try {
                             Order_Policy::get( (int) $item['order_id'] );
@@ -229,7 +229,8 @@ class Write_Guard {
                     }
                     if ( isset( $item['listing_id'] ) ) {
                         try {
-                            Access_Control::listing( (int) $item['listing_id'], 'edit' );
+                            $action = 'bulk-listings' === $tool && in_array( $args['action'] ?? '', [ 'trash', 'restore' ], true ) ? 'delete' : 'edit';
+                            Access_Control::listing( (int) $item['listing_id'], $action );
                         } catch ( Failure $error ) {
                             return [ 'client_ref' => $item['client_ref'], 'success' => false, 'error' => [ 'code' => 'not_found', 'message' => __( 'Listing not found.', 'directorist' ) ] ];
                         }

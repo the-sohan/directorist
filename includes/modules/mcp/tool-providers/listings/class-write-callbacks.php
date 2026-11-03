@@ -219,6 +219,7 @@ class Write_Callbacks {
                 }
                 Validation::unwrap( $result );
                 Validation::check( (bool) $result, __( 'The listing lifecycle update failed.', 'directorist' ), 'operation_failed' );
+                Validation::check( $status === get_post_status( $id ), __( 'The native workflow changed the reviewed listing status. Preview again using the native publication requirements.', 'directorist' ), 'state_changed' );
                 return Result::result( [ 'listing_id' => $id, 'status' => get_post_status( $id ), 'version' => Listing_Schema::version( get_post( $id ) ) ] );
             }
         ];

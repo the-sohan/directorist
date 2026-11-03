@@ -119,6 +119,7 @@ class Access_Control {
             $can  = $can && current_user_can( $type->cap->edit_others_posts );
         }
         Validation::check( $can, __( 'Listing not found.', 'directorist' ), 'not_found' );
+        Validation::check( true === apply_filters( 'directorist_rest_check_permissions', true, $action, (int) $post->ID, ATBDP_POST_TYPE ), __( 'Listing access is restricted.', 'directorist' ), 'forbidden' );
         return $post;
     }
 

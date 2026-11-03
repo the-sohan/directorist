@@ -36,7 +36,7 @@ class Write_Callbacks {
         if ( $create || $duplicate ) {
             Validation::check( directorist_is_multi_directory_enabled(), __( 'Enable multi-directory mode before creating another directory.', 'directorist' ), 'unsupported_operation' );
             $name = Validation::clean_text( $args['name'] );
-            Validation::check( '' !== trim( $name ) && ! term_exists( $name, ATBDP_DIRECTORY_TYPE ), __( 'Use a unique, nonempty directory name.', 'directorist' ) );
+            self::unique_name( $name );
             $slug = sanitize_title( $args['slug'] ?? $name );
             Validation::check( $slug && ! get_term_by( 'slug', $slug, ATBDP_DIRECTORY_TYPE ), __( 'Use a unique directory slug.', 'directorist' ) );
             $values = $duplicate ? Directory_Configuration::configuration( $id ) : array_map( [ Directory_Configuration::class, 'default_value' ], Directory_Configuration::definitions() );
@@ -103,6 +103,7 @@ class Write_Callbacks {
                 unset( $changes['slug'] );
             }
             Validation::check( $name && $slug, __( 'Name and slug cannot be empty.', 'directorist' ) );
+            self::unique_name( $name, $term->name );
             $existing = get_term_by( 'slug', $slug, ATBDP_DIRECTORY_TYPE );
             Validation::check( ! $existing || $existing->term_id === $id, __( 'That directory slug is already in use.', 'directorist' ) );
             $changes = Directory_Configuration::general( $changes );
@@ -137,6 +138,18 @@ class Write_Callbacks {
                 return Result::result( [ 'directory_id' => $id, 'version' => Directory_Configuration::version( $id ) ] );
             }
         ];
+    }
+
+    /**
+     * Match the native directory writer's name validation before reserving a write.
+     *
+     * @param string $name Proposed name.
+     * @param string $previous Existing name for updates.
+     */
+    private static function unique_name( string $name, string $previous = '' ): void {
+        $native_name = esc_attr( $name );
+        Validation::check( '' !== trim( $native_name ), __( 'Name cannot be empty.', 'directorist' ) );
+        Validation::check( $previous === $native_name || ! term_exists( $native_name, ATBDP_DIRECTORY_TYPE ), __( 'That directory name is already in use.', 'directorist' ), 'conflict' );
     }
 
     /**

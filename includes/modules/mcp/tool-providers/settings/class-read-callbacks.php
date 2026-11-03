@@ -26,7 +26,10 @@ class Read_Callbacks {
         Access_Control::admin();
         $registry = Settings_Schema::registry();
         $selected = Settings_Schema::select( $registry, $args );
-        $items    = [];
+        if ( 'get-settings' === $tool && ! isset( $args['keys'] ) ) {
+            $selected = array_filter( $selected, static function ( $definition ) { return $definition['readable']; } );
+        }
+        $items = [];
         foreach ( $selected as $key => $definition ) {
             if ( 'get-settings' === $tool ) {
                 Validation::check( $definition['readable'], __( 'Sensitive settings are available only in WordPress administration.', 'directorist' ), 'sensitive_field' );

@@ -8,6 +8,7 @@
 namespace Directorist\MCP\Tool_Providers\Listings;
 
 use Directorist\MCP\Runtime\Access_Control;
+use Directorist\MCP\Support\Failure;
 use Directorist\MCP\Support\Pagination;
 use Directorist\MCP\Support\Validation;
 
@@ -16,6 +17,8 @@ defined( 'ABSPATH' ) || exit;
 
 /** Read Callbacks. */
 class Read_Callbacks {
+    const LISTING_BUDGET = 20000;
+
     /**
      * Read.
      *
@@ -40,13 +43,14 @@ class Read_Callbacks {
             'paged'          => $page,
             'orderby'        => [ [ 'id' => 'ID', 'title' => 'title', 'date' => 'date', 'modified' => 'modified' ][ $args['orderby'] ?? 'id' ] => strtoupper( $args['order'] ?? 'asc' ), 'ID' => 'ASC' ]
         ];
+        if ( isset( $args['author'] ) ) {
+            $query['author'] = Validation::id( $args['author'] );
+        }
         if ( 'management' === $scope ) {
             Validation::check( current_user_can( $type->cap->edit_posts ), __( 'Listing management access is required.', 'directorist' ), 'forbidden' );
             if ( ! current_user_can( $type->cap->edit_others_posts ) ) {
                 Validation::check( ! isset( $args['author'] ) || $args['author'] === get_current_user_id(), __( 'Listing not found.', 'directorist' ), 'not_found' );
                 $query['author'] = get_current_user_id();
-            } elseif ( isset( $args['author'] ) ) {
-                $query['author'] = Validation::id( $args['author'] );
             }
             if ( current_user_can( $type->cap->edit_others_posts ) && ! current_user_can( $type->cap->read_private_posts ) ) {
                 // A query-level condition keeps protected records out of totals as well as rows.
@@ -91,14 +95,35 @@ class Read_Callbacks {
             $query['has_password'] = false;
             Validation::check( ! get_directorist_option( 'disable_single_listing', false ), __( 'Public listing access is disabled.', 'directorist' ), 'forbidden' );
         }
-        $query   = apply_filters( 'directorist_mcp_listing_read_query', $query, $scope, get_current_user_id() );
-        $results = new \WP_Query( $query );
-        $items   = [];
-        foreach ( $results->posts as $post ) {
-            Access_Control::listing( (int) $post->ID, 'read', $scope );
-            $items[] = Listing_Schema::data( $post, $scope, true );
-        }
-        return Pagination::collection( $items, $results->found_posts, $page, $size );
+        $query                   = apply_filters( 'directorist_mcp_listing_read_query', $query, $scope, get_current_user_id() );
+        $query['posts_per_page'] = 128;
+        $query['no_found_rows']  = true;
+        $items                   = [];
+        $total                   = 0;
+        $scanned                 = 0;
+        $batch                   = 0;
+        // Object policies cannot be expressed in SQL. Filter before counting or paging.
+        do {
+            $query['paged'] = ++$batch;
+            $results        = new \WP_Query( $query );
+            $scanned       += count( $results->posts );
+            Validation::check( $scanned <= self::LISTING_BUDGET, __( 'This listing scope exceeds the native object-permission scan budget. Select a directory or use a narrower filter.', 'directorist' ), 'unsupported_operation' );
+            foreach ( $results->posts as $post ) {
+                try {
+                    Access_Control::listing( (int) $post->ID, 'read', $scope );
+                } catch ( Failure $error ) {
+                    if ( ! in_array( $error->reason, [ 'not_found', 'forbidden' ], true ) ) {
+                        throw $error;
+                    }
+                    continue;
+                }
+                if ( $total >= ( $page - 1 ) * $size && $total < $page * $size ) {
+                    $items[] = Listing_Schema::data( $post, $scope, true );
+                }
+                ++$total;
+            }
+        } while ( count( $results->posts ) === 128 );
+        return Pagination::collection( $items, $total, $page, $size );
     }
 
     /**

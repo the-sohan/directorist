@@ -67,7 +67,6 @@ class Listing_Data {
                 }
                 try {
                     Access_Control::listing( $id );
-                    Validation::check( true === apply_filters( 'directorist_rest_check_permissions', true, 'read', $id, ATBDP_POST_TYPE ), __( 'This listing is restricted.', 'directorist' ), 'forbidden' );
                     $status = $row['post_status'];
                     ++$out['counts'][ $status ];
                     if ( 'publish' === $status ) {
