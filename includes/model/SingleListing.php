@@ -192,6 +192,13 @@ class Directorist_Single_Listing {
 
             $value = $this->get_field_value( $field );
 
+            // A button only renders when both its text and URL are present.
+            if ( 'button' === $field['widget_name'] ) {
+                $value = is_array( $value )
+                    && ! empty( $value['button_text'] )
+                    && ! empty( $value['button_url_label'] );
+            }
+
             if ( $value ) {
                 $has_contents = true;
                 break;
