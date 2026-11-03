@@ -135,6 +135,25 @@ function directorist_is_listing_featured( int $listing_id ): bool {
     return strval( get_post_meta( $listing_id, '_featured', true ) ) === '1';
 }
 
+/**
+ * Check listing access for a checkout customer, including asynchronous payments.
+ */
+function directorist_user_can_checkout_listing( int $listing_id, ?int $user_id = null ): bool {
+    if ( $listing_id < 1 ) {
+        return false;
+    }
+
+    $user_id = null === $user_id ? get_current_user_id() : $user_id;
+    $listing = get_post( $listing_id );
+
+    if ( ! $user_id || ! get_userdata( $user_id ) || ! $listing || ATBDP_POST_TYPE !== $listing->post_type ) {
+        return false;
+    }
+
+    // Frontend listing owners need not have access to the WordPress editor.
+    return (int) $listing->post_author === $user_id || user_can( $user_id, 'edit_post', $listing_id );
+}
+
 function directorist_set_listing_featured( int $listing_id, bool $is_featured = true ): bool {
     return update_post_meta( $listing_id, '_featured', $is_featured ? '1' : '0' );
 }
