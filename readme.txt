@@ -305,7 +305,13 @@ Directorist comes with an AI-powered directory builder. Use the Create with AI o
 **Security**
 
 - Escaped listing author output in the admin listings table to prevent stored XSS.
-- Strengthened listing and order authorization for featured checkout and payment retries.
+- Added ownership validation when processing listing attachments. Thanks to Jashid Sany through WPScan for responsibly reporting this issue.
+- Restricted listing edit-form data to authorized users. Thanks to Nicat Sultanov through WPScan for responsibly reporting this issue.
+- Restricted payment receipts to authorized users. Thanks to Ilqar Rahimli through WPScan for responsibly reporting this issue.
+- Added order authorization checks for payment retries. Thanks to Ilqar Rahimli through WPScan for responsibly reporting this issue.
+- Strengthened listing authorization for featured checkout. Thanks to GivMeInJ through WPScan for responsibly reporting this issue.
+- Prevented listing status updates from bypassing administrator approval. Thanks to Vuxvinh through WPScan for responsibly reporting this issue.
+- Added per-user permission checks to email verification bulk actions, including multisite. Thanks to Muni Nitish Kumar Yaddala through WPScan for responsibly reporting this issue.
 
 = 8.10.7 - Nov 1, 2026 =
 

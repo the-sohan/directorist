@@ -19,3 +19,9 @@ The test discovers the registered REST checkout namespace. It checks exact 401/4
 Requests use in-process WordPress REST dispatch. A local fake processor and repository updates simulate payment initiation/completion; this does not replace browser tests or verify a live provider's webhook signature. Outbound HTTP and email are blocked during fixture work. Site settings are overridden only in memory; no site options, plugin activation states, or global role capabilities are changed. Unique fixture users (including any per-user capabilities), listings, orders, and payments are removed in `finally`, and cleanup is checked. Do not interrupt the process; forced termination cannot run cleanup.
 
 The script prints its results and exits nonzero on failure. It creates no reports, screenshots, or other saved artifacts.
+
+## Listing, media, receipt and user authorization
+
+Run `object-authorization-security.php` using the same local/test WP-CLI command above, replacing the test filename. It blocks outbound HTTP/email and cleans up its temporary users, per-user capabilities, posts and order in `finally`. It checks foreign attachment selection and both deletion paths (including poisoned saved IDs), existing admin-supplied media, pending approval and owner visibility toggles, receipt authorization, existing/new form authorization, and all three user bulk-action permission gates.
+
+Receipt and form checks stop at the rendering boundary; they do not test browser layout. The mixed-target bulk-action test models a multisite object-capability denial with `map_meta_cap`; it does not provision a live multisite network. Run the suite on a disposable single-site installation. No site settings or global role capabilities are changed.
