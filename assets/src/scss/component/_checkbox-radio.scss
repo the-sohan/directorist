@@ -7,7 +7,30 @@
 
     input[type="checkbox"],
     input[type="radio"]{
-        display: none !important;
+        // Keep native controls focusable without changing the custom label layout.
+        display: block !important;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+
+        &[hidden] {
+            display: none !important;
+        }
+
+        &:focus {
+            & +.directorist-checkbox__label:after,
+            & +.directorist-radio__label:after {
+                outline: 2px solid var(--directorist-color-primary);
+                outline-offset: 2px;
+            }
+        }
 
         & +.directorist-checkbox__label,
         & +.directorist-radio__label{
