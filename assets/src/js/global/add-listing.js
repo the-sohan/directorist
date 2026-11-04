@@ -56,6 +56,10 @@ function normalizeRedirectUrl(url) {
 		return '';
 	}
 
+	if (/^https?:\/\//i.test(url) || url.startsWith('/')) {
+		return url;
+	}
+
 	try {
 		const decodedUrl = decodeURIComponent(url);
 
@@ -967,7 +971,7 @@ $(function () {
 												response.id,
 												'&preview=1&payment=1&edited=1&redirect='
 											)
-											.concat(qs.redirect)
+											.concat(encodeURIComponent(qs.redirect))
 									);
 								} else {
 									window.location.href = joinQueryString(
@@ -1159,7 +1163,8 @@ $(function () {
 	});
 
 	function addSticky() {
-		$(window).scroll(
+		$(window).on(
+			'scroll resize',
 			debounce(function () {
 				var windowWidth = $(window).width();
 				var sidebarWidth = $('.multistep-wizard__nav').width();
