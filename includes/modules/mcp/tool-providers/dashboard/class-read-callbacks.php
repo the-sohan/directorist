@@ -139,7 +139,7 @@ class Read_Callbacks {
             Validation::check( ! array_intersect( $selected, [ 'orders', 'favorites', 'enquiries' ] ), __( 'Select listing sections for directory filtering; these sources have no native directory allocation.', 'directorist' ), 'unsupported_operation' );
         }
         $data     = [];
-        $listings = array_intersect( $selected, [ 'listings', 'views' ] ) ? Listing_Data::listings( $args, $range ) : null;
+        $listings = array_intersect( $selected, [ 'listings', 'views' ] ) ? Listing_Data::listings( $args, $range, false, ! in_array( 'views', $selected, true ) ) : null;
         foreach ( $selected as $section ) {
             if ( isset( $extensions[ $section ] ) ) {
                 $data[ $section ] = Read_Contributions::read( $extensions[ $section ], $args );
