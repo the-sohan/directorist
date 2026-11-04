@@ -1,6 +1,6 @@
 # Current Settings Panel Map
 
-Last reviewed: 2026-10-06
+Last reviewed: 2026-10-18
 
 ## Main Entry Points
 
@@ -58,6 +58,18 @@ Last reviewed: 2026-10-06
 - PayPal and Stripe async webhook controls compare their environment-specific credential fields against `cached_fields`. When both keys are present but unsaved and no webhook ID exists, `Save & Register` first submits only that gateway environment's credential keys through the existing settings AJAX endpoint, then registers only after a successful save. Unrelated unsaved settings are not submitted; a failed save or keys changing mid-save blocks registration. Missing keys block the action with a hover/focus explanation. A saved webhook ID locks the matching credential text fields (including quick-search editing) until Disconnect succeeds; if credentials are missing from an older or external change, those fields stay editable as a recovery path. A saved webhook ID is not cleared when keys are removed; without valid credentials for the same gateway account or app, the gateway delete request cannot run, so the UI shows `Keys missing` and instructs the admin to add valid keys, save, then disconnect. The saved ID is not independent proof that the provider still has the webhook.
 
 Credential recovery (2026-11-02): `getActionFieldLock` receives `cached_fields` from the regular text field and both quick-search paths. The connected lock requires complete live and acknowledged credential values; typing the first recovery character must not re-lock either editor. Successful settings saves restore the lock through cache updates; failed saves leave recovery editable. Pending action locks remain unconditional for required/locked fields.
+
+## Dedicated MCP Configuration Field
+
+The MCP module injects mcp_enabled and root **Other Features → MCP** through the existing settings filters. assets/src/js/admin/mcp/init.js registers McpConfigurationField through DirectoristSettingsPanel.registerComponent() and its mount hook. The MCP scripts and styles ship directly from assets/src/js/admin/mcp and assets/src/css/admin/mcp; packaging retains only these MCP source subtrees.
+
+The mount adapter uses original builder-data layouts, removes only the new MCP fallback placement, prepares navigation and restores the deep link. It preserves the shell, search, breadcrumbs and store. Enablement defaults to false; immediate saves use the native nonce/capability-protected save_settings_data contract and submit only this key. Confirmed saves update live/cached values; general saves omit the key to avoid stale toggles.
+
+Since the UI handoff on 2026-11-01, Configure/Hide setup expands an inline region inside the settings field. It does not portal, trap focus or alter background inert/scroll state. The three steps select an app, add current/alternate account credentials, and display the configuration even before credentials are supplied. Temporary credentials clear on collapse/navigation/disablement/unmount. Status and snippet templates remain permission-protected REST reads. Credentials never enter Vuex or request payloads. Scoped CSS ships directly without a legacy bundle rebuild. The three component handles depend on wp-i18n and register the directorist translation domain.
+
+Browser checks on 2026-10-18 covered root navigation/deep links, Configure visibility, tabs, local dummy-credential snippets, password cleanup, Escape and focus return. Future changes should also test unrelated unsaved settings alongside the immediate toggle.
+
+Verified on 2026-10-23: `Tool_Providers\Settings\Settings_Schema::registry()` builds the complete native settings panel before filtering requested keys. The panel's role choices call `get_editable_roles()`, which is defined in `wp-admin/includes/user.php` and is not loaded by ordinary REST requests. The registry conditionally loads that dependency when the function is missing. Verify this path through the actual Directorist MCP server: discover a setting, read its original value, preview and commit a temporary update, read it back, then preview and commit restoration and verify the original value. A WP-CLI-only check can conceal the missing REST dependency because WP-CLI loads admin helpers.
 
 ## Connected Systems
 
@@ -160,3 +172,23 @@ Last updated: 2026-09-04
 - `Monetization > Payment gateways` is the core redesigned gateway tab. It renders existing `active_gateways` as a settings-panel-only `Bank transfer` toggle that only adds/removes the `bank_transfer` value while preserving any extension gateway values in the array, then renders `default_gateway`. The same tab also renders `Bank transfer details` with hidden `offline_payment_note`, visible `bank_transfer_title`, and nested advanced `Description & bank instructions` for `bank_transfer_description` / `bank_transfer_instruction`. Do not render a separate redesigned `Bank transfer` submenu. Payment gateway extension submenus registered under `atbdp_monetization_settings_submenu` render as additional `Monetization` tabs after `Payment gateways`, preserving their extension-provided labels, sections, fields, and save keys.
 
 Generic async action follow-up (2026-10-11): provider dependency keys, initial/next action state, translated copy, and mode metadata now come from the Stripe/PayPal extensions. Core evaluates `async-action-config`, `async-action-state`, `search-respect-show-if`, and `section-toggle`; the previous contract is isolated in `vue/compat/legacy-webhook-actions.js`. Ordinary links and existing option storage remain unchanged. See [the async settings action contract](async-settings-actions.md) for ownership, save/lock behavior, compatibility, and verification.
+
+The MCP status summary derives eligible tool counts and groups, including Orders and registered extension groups, from includes/modules/mcp/registration/class-tool-registry.php through Catalog::definitions() and Tools::available(). The connection component renders that response without a second toggle or Vuex/credential/save contract change.
+
+## MCP module refactor — 22 October 2026
+
+The module starts at `includes/modules/mcp/class-init.php`. MCP field/layout/save hooks are owned by `admin/class-settings-integration.php`; asset dependencies are registered by `admin/class-assets.php`. The directly shipped UI now has separate field, drawer and client components plus request/snippet/clipboard/accessibility helpers under `assets/src/js/admin/mcp/`. Three ordered stylesheets live under `assets/src/css/admin/mcp/`. No settings-manager bundle or Vuex contract was changed. The same registry mount adapter preserves `other_features__mcp` and excludes only the independently saved enablement field from general saves. See `docs/mcp/architecture.md`.
+
+### Confirmed MCP interaction regressions — 22 October 2026
+
+- A native checkbox changes before its change handler runs. A Vue `:checked` binding alone does not roll back a rejected request when the bound value remains unchanged. The MCP field restores the DOM checkbox immediately and changes its saved value only after status confirmation.
+- The former connection drawer's keyboard loop included native `summary` disclosures and excluded controls with negative tab indexes. Superseded by the inline UI on 2026-11-01: verify normal Tab flow through app cards, credentials, copy controls and disclosures without a focus trap. Arrow/Home/End keys select app cards; Enter in credential inputs must not submit the surrounding settings form.
+- Unauthorized status handling occurs before JSON parsing so proxy-generated HTML errors still close the drawer and clear its transient credentials. Destroyed field components must not start status requests from late save continuations.
+
+### Confirmed MCP inline UI behavior — 1 November 2026
+
+- The settings shell contains a form. Use a div for local credentials and suppress Enter only on its inputs; a nested form is invalid and preventing Enter on the whole credential area also breaks keyboard activation of password visibility.
+- Clipboard feedback belongs beside its own action. Track success/error separately from translated message text, expire feedback and cancel obsolete continuations when credentials, the selected template or endpoint changes, or the panel closes/unmounts.
+- Advanced connection details show the endpoint, Header Key (`Authorization`) and a dynamic Header Value (`Basic ` plus UTF-8 base64 of the selected username and application password). The snippet and header share the stateless `encodeCredentials` helper. Both header rows use the existing local copy/feedback pattern; absent credentials show a placeholder, and cleanup clears the derived header.
+- HTTP endpoint warnings use a native advanced disclosure and a focusable trigger with an aria-describedby tooltip. Allow tooltip overflow inside the panel, constrain it on mobile, and keep the document free of horizontal overflow.
+- `node --test tests/mcp-ui.test.cjs` covers template compilation, local snippet filling, clipboard races/cleanup and native switch-save contracts. Browser fixture QA uses real Vue and WordPress i18n with dummy credentials; it does not establish live adapter installation or authenticated settings-save success.

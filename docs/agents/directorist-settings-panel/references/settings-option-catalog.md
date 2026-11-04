@@ -1,6 +1,6 @@
 # Settings Option Catalog
 
-Last reviewed: 2026-10-04
+Last reviewed: 2026-10-18
 
 Source of truth reviewed:
 
@@ -18,6 +18,17 @@ This catalog is for agents planning settings-panel redesigns or feature work. It
 - Treat page, permalink, map, payment, email, and save-contract options as higher risk because they affect runtime behavior outside the settings UI.
 - Distinguish direct core settings, core filter-injected settings, and extension-provided settings before planning a redesign.
 - For extension-specific settings, inspect the installed/active extension source before documenting or redesigning those settings.
+
+## Other Features → MCP
+
+Core source: includes/modules/mcp/admin/class-settings-integration.php; UI entry point: assets/src/js/admin/mcp/init.js.
+
+- **mcp_enabled**: boolean in atbdp_option, default false, field type mcp-configuration. Values normalize to boolean. The UI requires manage_options, the native settings nonce, Abilities API and MCP Adapter 0.6.1+ before enabling.
+- The switch immediately saves only mcp_enabled through save_settings_data. Confirmed values update live/cached Vuex state; general saves omit the key. Configure appears when enabled and expands the inline setup; Hide setup collapses it (UI handoff, 2026-11-01).
+- Adapter setup (2026-10-24): the field offers Install & Activate or Activate according to installed/active state, with a loading spinner. It uses WordPress's native install-plugin/activate-plugin AJAX actions and updates nonce, respecting separate plugin capabilities. Status refresh does not automatically enable MCP or change the general settings save path. Dependency setup status is owned by includes/modules/mcp/admin/class-adapter-setup.php; the request service is assets/src/js/admin/mcp/services/adapter-installer.js.
+- Readers: Module::enabled(), ability/server registration, Access::connected(), all executions, status/templates and cooperating native-write locks. Changing enablement rotates directorist_mcp_epoch and invalidates previews.
+- Credentials, snippets, selected client and setup visibility remain component-local. The current account is preselected; an optional alternate-account input changes local snippet credentials only. Collapsing, navigating away, disabling or unmounting clears credentials. Status/templates require manage_options; the public guide contains no credentials. Tools cannot change their own enablement setting.
+- Navigation: root other_features, submenu mcp, hash #other_features__mcp. The registry mount adapter removes only this field's fallback placement before inserting its root menu.
 
 ## Listings
 
