@@ -11,7 +11,8 @@ use Directorist\DTO\Order\DTO as OrderDTO;
 use Directorist\Utils\Template;
 
 class FeaturedListingCheckout {
-    const CHECKOUT_TYPE = 'featured_listing';
+    const CHECKOUT_TYPE                  = 'featured_listing';
+    const PUBLISH_AFTER_PAYMENT_META_KEY = '_directorist_featured_publish_after_payment';
 
     public function __construct() {
         add_filter( 'directorist_order_data', [ $this, 'handle_order_data' ] );
@@ -34,6 +35,8 @@ class FeaturedListingCheckout {
         add_filter( 'directorist_checkout_product_name', [$this, 'handle_checkout_product_name'], 10, 2 );
         add_filter( 'directorist_ajax_listing_submission_response', [ $this, 'handle_listing_submission_response_data' ], 10, 2 );
         add_filter( 'directorist_listing_update_args_after_preview', [ $this, 'handle_listing_status_after_preview' ], 10, 2 );
+        add_action( 'atbdp_listing_updated', [ $this, 'clear_pending_publication' ] );
+        add_action( 'atbdp_before_renewal', [ $this, 'clear_pending_publication' ] );
     }
 
     public function handle_listing_submission_response_data( array $data, array $request ) {
@@ -52,6 +55,12 @@ class FeaturedListingCheckout {
 
         if ( directorist_order_repository()->listing_has_paid_featured_order( $listing_id ) ) {
             return $data;
+        }
+
+        if ( 'publish' === get_post_status( $listing_id ) ) {
+            update_post_meta( $listing_id, self::PUBLISH_AFTER_PAYMENT_META_KEY, 1 );
+        } else {
+            $this->clear_pending_publication( $listing_id );
         }
 
         directorist_set_listing_featured( $listing_id, false );
@@ -75,9 +84,17 @@ class FeaturedListingCheckout {
             return $args;
         }
 
+        if ( 'publish' === $args['post_status'] && 'private' === get_post_status( $listing_id ) && empty( $args['edited'] ) ) {
+            update_post_meta( $listing_id, self::PUBLISH_AFTER_PAYMENT_META_KEY, 1 );
+        }
+
         $args['post_status'] = 'pending';
 
         return $args;
+    }
+
+    public function clear_pending_publication( $listing_id ) {
+        delete_post_meta( $listing_id, self::PUBLISH_AFTER_PAYMENT_META_KEY );
     }
 
     public function add_checkout_type( array $checkout_types ) {
@@ -98,6 +115,16 @@ class FeaturedListingCheckout {
 
         if ( ! $listing || $listing->post_type !== ATBDP_POST_TYPE ) {
             throw new Exception( __( 'Invalid listing id.', 'directorist' ) );
+        }
+
+        if ( (int) $listing->post_author !== get_current_user_id() && ! current_user_can( 'edit_post', $listing->ID ) ) {
+            throw new Exception( __( 'You do not have permission to feature this listing.', 'directorist' ), 403 );
+        }
+
+        $price = get_directorist_option( 'featured_listing_price' );
+
+        if ( ! is_numeric( $price ) || ! is_finite( (float) $price ) || (float) $price < 0 ) {
+            throw new Exception( __( 'The featured listing price is not configured.', 'directorist' ), 400 );
         }
     }
 
@@ -149,15 +176,19 @@ class FeaturedListingCheckout {
 
             directorist_set_listing_featured( $dto->get_listing_id(), true );
 
-            // Publish the listing if it's pending
+            // Only restore listings held for payment, not listings pending moderation.
             $listing = get_post( $dto->get_listing_id() );
 
             if ( $listing && $order_expiration ) {
                 $this->update_listing_expiration( $listing, $order_expiration );
             }
 
-            if ( $listing && 'publish' !== $listing->post_status ) {
-                directorist_set_listing_status( $dto->get_listing_id(), 'publish' );
+            if ( $listing && 'pending' === $listing->post_status && get_post_meta( $listing->ID, self::PUBLISH_AFTER_PAYMENT_META_KEY, true ) ) {
+                directorist_set_listing_status( $listing->ID, 'publish' );
+            }
+
+            if ( $listing ) {
+                $this->clear_pending_publication( $listing->ID );
             }
 
             if ( ! isset( $old_order->status ) || Status::PAID !== $old_order->status ) {

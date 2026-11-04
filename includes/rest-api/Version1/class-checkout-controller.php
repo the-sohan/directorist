@@ -194,6 +194,10 @@ class Checkout_Controller extends Abstract_Controller {
                 ]
             );
         } catch ( Exception $e ) {
+            if ( in_array( $e->getCode(), [ 400, 403 ], true ) ) {
+                return new WP_Error( 'rest_error', $e->getMessage(), [ 'status' => $e->getCode() ] );
+            }
+
             return new WP_Error( 'rest_error', $e->getMessage() );
         }
     }
@@ -212,6 +216,10 @@ class Checkout_Controller extends Abstract_Controller {
         }
 
         $order = $order_repository->to_dto( $order );
+
+        if ( $order->get_user_id() !== get_current_user_id() ) {
+            return new WP_Error( 'rest_not_found', __( 'Order not found.', 'directorist' ), [ 'status' => 404 ] );
+        }
 
         if ( ! in_array( $order->get_status(), [ OrderStatus::PENDING, OrderStatus::FAILED ], true ) ) {
             return new WP_Error( 'rest_invalid_value', __( 'Order is not pending or failed.', 'directorist' ) );
