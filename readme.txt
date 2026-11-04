@@ -300,7 +300,10 @@ Directorist comes with an AI-powered directory builder. Use the Create with AI o
 
 == Changelog ==
 
-= 8.11 - Nov 3, 2026 =
+= 8.11 - Nov 4, 2026 =
+
+**New**
+- Added MCP (Model Context Protocol) support, allowing AI assistants to manage listings, directories, settings, orders, and more
 
 **Security**
 
