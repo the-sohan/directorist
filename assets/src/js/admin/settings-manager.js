@@ -1,3 +1,4 @@
+import { adaptLegacyWebhookFields } from './vue/compat/legacy-webhook-actions';
 import Vue from 'vue';
 import SlideUpDown from 'vue-slide-up-down';
 import Vuex from 'vuex';
@@ -113,6 +114,11 @@ window.addEventListener('load', () => {
 					Vue,
 				},
 			})
+		);
+
+		adaptLegacyWebhookFields(
+			builderData.fields || {},
+			builderData.config?.gateway_mode_keys
 		);
 
 		const app = new Vue({
