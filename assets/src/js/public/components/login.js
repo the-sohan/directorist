@@ -97,7 +97,7 @@
 				action: 'ajaxlogin',
 				username: getLoginFieldValue('username'),
 				password: getLoginFieldValue('password'),
-				rememberme: $this.find('#keep_signed_in').is(':checked')
+				rememberme: $this.find('input[name="keep_signed_in"]').is(':checked')
 					? 1
 					: 0,
 				security: $this.find('#security').val(),
