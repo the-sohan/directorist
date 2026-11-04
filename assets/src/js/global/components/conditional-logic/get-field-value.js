@@ -26,6 +26,16 @@ export function getFieldValue(fieldKey, $, scopeSelector = '') {
 	const findField = (selector) =>
 		$scope.length ? $scope.find(selector) : $(selector);
 
+	// Read native nested selects in this form without changing legacy input handlers.
+	if (/^[a-zA-Z0-9_-]+\[[a-zA-Z0-9_-]+\]$/.test(fieldKey)) {
+		const $nested = findField(
+			`select[name="${fieldKey}"]:not(.select2-hidden-accessible)`
+		).first();
+		if ($nested.length) {
+			return !$nested.is(':disabled') ? $nested.val() || null : null;
+		}
+	}
+
 	// Special handling for privacy_policy field (checkbox field)
 	if (fieldKey === 'privacy_policy') {
 		const $privacyCheckbox = $(
