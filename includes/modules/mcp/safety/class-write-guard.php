@@ -9,6 +9,7 @@ namespace Directorist\MCP\Safety;
 
 use Directorist\MCP\Extensions\Callback_Invoker;
 use Directorist\MCP\Extensions\External_Operations;
+use Directorist\MCP\Tool_Providers\Listings\Listing_Schema;
 use Directorist\MCP\Tool_Providers\Orders\Financial_Operations;
 use Directorist\MCP\Tool_Providers\Orders\Order_Policy;
 use Directorist\MCP\Registration\Core_Tool_Provider;
@@ -39,7 +40,45 @@ class Write_Guard {
     public static function fresh(): void {
         wp_cache_delete( 'atbdp_option', 'options' );
         wp_cache_delete( 'alloptions', 'options' );
+        wp_cache_delete( 'notoptions', 'options' );
         wp_cache_delete( 'directorist_mcp_epoch', 'options' );
+    }
+
+    /**
+     * Clear listing state cached by authorization before the write lock was held.
+     *
+     * @param array $args Single or bulk listing selectors.
+     */
+    private static function refresh_listings( array $args ): void {
+        $items = is_array( $args['items'] ?? null ) ? array_slice( $args['items'], 0, 50 ) : [];
+        $ids   = [];
+        foreach ( array_merge( [ $args ], $items ) as $item ) {
+            $id = ( (array) $item )['listing_id'] ?? null;
+            if ( is_int( $id ) && $id > 0 ) {
+                $ids[ $id ] = $id;
+            }
+        }
+        if ( ! $ids ) {
+            return;
+        }
+
+        wp_cache_delete_multiple( $ids, 'posts' );
+        wp_cache_delete_multiple( $ids, 'post_meta' );
+        foreach ( get_object_taxonomies( ATBDP_POST_TYPE ) as $taxonomy ) {
+            wp_cache_delete_multiple( $ids, $taxonomy . '_relationships' );
+        }
+        // Term queries have a separate cache generation from relationship caches.
+        if ( wp_using_ext_object_cache() ) {
+            wp_cache_get( 'last_changed', 'terms', true );
+        } else {
+            wp_cache_set_terms_last_changed();
+        }
+        foreach ( $ids as $id ) {
+            if ( ATBDP_POST_TYPE === get_post_type( $id ) ) {
+                $directory = Listing_Schema::directory( $id );
+                wp_cache_delete( $directory, 'term_meta' );
+            }
+        }
     }
 
     /**
@@ -56,6 +95,7 @@ class Write_Guard {
         Write_Lock::lock();
         try {
             self::fresh();
+            self::refresh_listings( $args );
             Access_Control::permission( $tool, $args );
             $dry = $args['dry_run'] ?? false;
             Validation::check( is_bool( $dry ), __( 'dry_run must be a boolean.', 'directorist' ) );
@@ -82,6 +122,7 @@ class Write_Guard {
                 $input = $args['idempotency_key'] ?? '';
                 Validation::check( is_string( $input ) && preg_match( '/^[A-Za-z0-9_.:-]{8,128}$/', $input ), __( 'Provide an idempotency_key of 8–128 letters, numbers, dots, colons, hyphens or underscores.', 'directorist' ), 'idempotency_required' );
                 $key = '_directorist_mcp_op_' . Canonical_Data::hash( [ get_current_blog_id(), get_current_user_id(), $tool, $input ] );
+                wp_cache_delete( $key, 'options' );
                 $old = get_option( $key );
                 if ( is_array( $old ) && ( 'done' !== ( $old['state'] ?? '' ) || ( $old['expires'] ?? 0 ) > time() ) ) {
                     Validation::check( hash_equals( $old['digest'], $digest ), __( 'This idempotency key was used for a different action.', 'directorist' ), 'idempotency_conflict' );
@@ -178,6 +219,7 @@ class Write_Guard {
      * @param string $tool Unprefixed tool action name.
      */
     public static function replay( array $result, array $args, string $tool ): array {
+        self::refresh_listings( [ 'listing_id' => $result['listing_id'] ?? null, 'items' => $result['results'] ?? [] ] );
         $definition = Core_Tool_Provider::definitions()[ $tool ];
         if ( isset( $definition['owner'] ) && empty( $definition['bulk_of'] ) ) {
             $result = Read_Guard::run(
@@ -239,6 +281,10 @@ class Write_Guard {
                     return $item;
                 }, $result['results']
             );
+            if ( isset( $result['summary']['succeeded'], $result['summary']['failed'], $result['summary']['indeterminate'] ) ) {
+                $result['summary'] = Bulk_Executor::summary( $result['results'] );
+                $result['success'] = 0 === $result['summary']['failed'];
+            }
         }
         unset( $result['data'], $result['fields'], $result['values'] );
         $result['idempotent_replay'] = true;

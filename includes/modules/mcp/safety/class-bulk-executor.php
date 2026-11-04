@@ -106,32 +106,32 @@ class Bulk_Executor {
                     }
                     Write_Guard::checkpoint( $results );
                 }
-                $succeeded = count(
-                    array_filter(
-                        $results, static function ( $r ) {
-                            return ! empty( $r['success'] );
-                        }
-                    )
-                );
+                $summary = self::summary( $results );
                 return Result::result(
                     [
-                        'success'   => $succeeded === count( $results ),
-                        'committed' => $succeeded > 0 ? true : ( $unknown ? 'unknown' : false ),
+                        'success'   => 0 === $summary['failed'],
+                        'committed' => $summary['succeeded'] > 0 ? true : ( $unknown ? 'unknown' : false ),
                         'results'   => $results,
-                        'summary'   => [
-                            'succeeded'     => $succeeded,
-                            'failed'        => count( $results ) - $succeeded,
-                            'indeterminate' => count(
-                                array_filter(
-                                    $results, static function ( $r ) {
-                                        return 'unknown' === ( $r['committed'] ?? false );
-                                    }
-                                )
-                            )
-                        ]
+                        'summary'   => $summary,
                     ]
                 );
             }
         ];
+    }
+
+    /**
+     * Summarize the item results visible in this response.
+     *
+     * @param array $results Batch results.
+     */
+    public static function summary( array $results ): array {
+        $summary = [ 'succeeded' => 0, 'failed' => 0, 'indeterminate' => 0 ];
+        foreach ( $results as $item ) {
+            ++$summary[ ! empty( $item['success'] ) ? 'succeeded' : 'failed' ];
+            if ( 'unknown' === ( $item['committed'] ?? false ) ) {
+                ++$summary['indeterminate'];
+            }
+        }
+        return $summary;
     }
 }

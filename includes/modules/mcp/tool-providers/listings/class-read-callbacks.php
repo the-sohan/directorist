@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** Read Callbacks. */
 class Read_Callbacks {
-    const LISTING_BUDGET = 20000;
+    const EXACT_POLICY_LIMIT = 256;
 
     /**
      * Read.
@@ -35,13 +35,15 @@ class Read_Callbacks {
         }
         list( $page, $size ) = Pagination::paging( $args );
         $type                = get_post_type_object( ATBDP_POST_TYPE );
+        $sort                = [ 'id' => 'ID', 'title' => 'title', 'date' => 'date', 'modified' => 'modified' ][ $args['orderby'] ?? 'id' ];
+        $orderby             = [ $sort => strtoupper( $args['order'] ?? 'asc' ) ] + [ 'ID' => 'ASC' ];
         $query               = [
             'post_type'      => ATBDP_POST_TYPE,
             'post_status'    => 'public' === $scope ? 'publish' : [ 'publish', 'pending', 'draft', 'private', 'trash', 'expired', 'rejected' ],
             's'              => $args['search'] ?? '',
             'posts_per_page' => $size,
             'paged'          => $page,
-            'orderby'        => [ [ 'id' => 'ID', 'title' => 'title', 'date' => 'date', 'modified' => 'modified' ][ $args['orderby'] ?? 'id' ] => strtoupper( $args['order'] ?? 'asc' ), 'ID' => 'ASC' ]
+            'orderby'        => $orderby
         ];
         if ( isset( $args['author'] ) ) {
             $query['author'] = Validation::id( $args['author'] );
@@ -76,9 +78,6 @@ class Read_Callbacks {
         if ( $tax_query ) {
             $query['tax_query'] = $tax_query;
         }
-        if ( isset( $args['featured'] ) ) {
-            $query['meta_query'][] = [ 'key' => '_featured', 'value' => $args['featured'] ? '1' : '0' ];
-        }
         foreach ( [ 'created' => 'post_date_gmt', 'modified' => 'post_modified_gmt' ] as $prefix => $column ) {
             $date = [ 'column' => $column, 'inclusive' => true ];
             foreach ( [ 'after', 'before' ] as $bound ) {
@@ -95,35 +94,120 @@ class Read_Callbacks {
             $query['has_password'] = false;
             Validation::check( ! get_directorist_option( 'disable_single_listing', false ), __( 'Public listing access is disabled.', 'directorist' ), 'forbidden' );
         }
-        $query                   = apply_filters( 'directorist_mcp_listing_read_query', $query, $scope, get_current_user_id() );
-        $query['posts_per_page'] = 128;
-        $query['no_found_rows']  = true;
-        $items                   = [];
-        $total                   = 0;
-        $scanned                 = 0;
-        $batch                   = 0;
-        // Object policies cannot be expressed in SQL. Filter before counting or paging.
-        do {
-            $query['paged'] = ++$batch;
-            $results        = new \WP_Query( $query );
-            $scanned       += count( $results->posts );
-            Validation::check( $scanned <= self::LISTING_BUDGET, __( 'This listing scope exceeds the native object-permission scan budget. Select a directory or use a narrower filter.', 'directorist' ), 'unsupported_operation' );
-            foreach ( $results->posts as $post ) {
-                try {
-                    Access_Control::listing( (int) $post->ID, 'read', $scope );
-                } catch ( Failure $error ) {
-                    if ( ! in_array( $error->reason, [ 'not_found', 'forbidden' ], true ) ) {
-                        throw $error;
-                    }
-                    continue;
-                }
-                if ( $total >= ( $page - 1 ) * $size && $total < $page * $size ) {
-                    $items[] = Listing_Schema::data( $post, $scope, true );
-                }
-                ++$total;
+        $featured = isset( $args['featured'] ) ? rest_sanitize_boolean( $args['featured'] ) : null;
+        $query    = apply_filters( 'directorist_mcp_listing_read_query', $query, $scope, get_current_user_id() );
+        if ( 'public' === $scope && self::has_sql_visibility() ) {
+            $results = self::query( $query, $featured );
+            $posts   = self::authorized( $results->posts, $scope );
+            if ( count( $posts ) === count( $results->posts ) && 'publish' === $results->get( 'post_status' ) && false === $results->get( 'has_password' ) && ATBDP_POST_TYPE === $results->get( 'post_type' ) ) {
+                // WP_Query skips found_rows on empty pages. Count from the first page in that case.
+                $total = ! $posts && $page > 1 ? self::query( [ 'paged' => 1, 'posts_per_page' => 1 ] + $query, $featured )->found_posts : $results->found_posts;
+                return Pagination::collection( self::project( $posts, $scope ), $total, $page, $size );
             }
-        } while ( count( $results->posts ) === 128 );
-        return Pagination::collection( $items, $total, $page, $size );
+        }
+
+        // Small scopes keep exact visible totals. Never scan an entire large scope
+        // to evaluate a PHP-only permission policy.
+        $probe = self::query( [ 'paged' => 1, 'posts_per_page' => self::EXACT_POLICY_LIMIT + 1, 'no_found_rows' => true ] + $query, $featured );
+        if ( count( $probe->posts ) <= self::EXACT_POLICY_LIMIT ) {
+            $posts = self::authorized( $probe->posts, $scope );
+            return Pagination::collection( self::project( array_slice( $posts, ( $page - 1 ) * $size, $size ), $scope ), count( $posts ), $page, $size );
+        }
+
+        $offset = ( $page - 1 ) * $size;
+        $window = 1 === $page ? array_slice( $probe->posts, 0, $size + 1 ) : self::query( [ 'offset' => $offset, 'posts_per_page' => $size + 1, 'no_found_rows' => true ] + $query, $featured )->posts;
+        $posts  = self::authorized( array_slice( $window, 0, $size ), $scope );
+        return [
+            'items'           => self::project( $posts, $scope ),
+            'page'            => $page,
+            'per_page'        => $size,
+            'total'           => null,
+            'total_pages'     => null,
+            'has_more'        => count( $window ) > $size,
+            'pagination_mode' => 'candidate_windows',
+        ];
+    }
+
+    /** Whether the public SQL predicates completely describe the native visibility policy. */
+    private static function has_sql_visibility(): bool {
+        global $wp_filter;
+        $native = $wp_filter['directorist_rest_check_permissions']->callbacks ?? [];
+        foreach ( $native as $callbacks ) {
+            foreach ( $callbacks as $callback ) {
+                if ( 'directorist_allow_read_context_permission' !== $callback['function'] || $callback['accepted_args'] < 4 ) {
+                    return false;
+                }
+            }
+        }
+        return ! has_filter( 'directorist_mcp_public_listing_visible' )
+            && ! has_filter( 'directorist_mcp_listing_read_query' )
+            && ! has_filter( 'get_post_status' )
+            && ! empty( get_post_status_object( 'publish' )->public );
+    }
+
+    /**
+     * Apply the same stored Featured value as the detail projection, including absent
+     * metadata and older records with more than one value.
+     *
+     * @param array $args Query arguments.
+     * @param bool|null $featured Featured filter, when supplied.
+     */
+    private static function query( array $args, ?bool $featured ): \WP_Query {
+        if ( null === $featured ) {
+            return new \WP_Query( $args );
+        }
+
+        $query = new \WP_Query();
+        $where = static function ( $sql, $current ) use ( $query, $featured ) {
+            if ( $query !== $current ) {
+                return $sql;
+            }
+            global $wpdb;
+            $operator = $featured ? 'NOT IN' : 'IN';
+            return $sql . " AND CAST(COALESCE((SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = {$wpdb->posts}.ID AND meta_key = '_featured' ORDER BY meta_id LIMIT 1), '') AS BINARY) {$operator} ('', '0')";
+        };
+        add_filter( 'posts_where', $where, 10, 2 );
+        try {
+            $args['suppress_filters'] = false;
+            $query->query( $args );
+            return $query;
+        } finally {
+            remove_filter( 'posts_where', $where, 10 );
+        }
+    }
+
+    /**
+     * Filter records using the same object policy as single-listing reads.
+     *
+     * @param array $posts Candidate posts.
+     * @param string $scope Projection scope.
+     */
+    private static function authorized( array $posts, string $scope ): array {
+        $allowed = [];
+        foreach ( $posts as $post ) {
+            try {
+                $allowed[] = Access_Control::listing( (int) $post->ID, 'read', $scope );
+            } catch ( Failure $error ) {
+                if ( ! in_array( $error->reason, [ 'not_found', 'forbidden' ], true ) ) {
+                    throw $error;
+                }
+            }
+        }
+        return $allowed;
+    }
+
+    /**
+     * Project the authorized page.
+     *
+     * @param array $posts Authorized posts.
+     * @param string $scope Projection scope.
+     */
+    private static function project( array $posts, string $scope ): array {
+        return array_map(
+            static function ( $post ) use ( $scope ) {
+                return Listing_Schema::data( $post, $scope, true );
+            }, $posts
+        );
     }
 
     /**
