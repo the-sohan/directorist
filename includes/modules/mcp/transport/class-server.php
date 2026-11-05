@@ -21,10 +21,10 @@ class Server {
     /**
      * Register Directorist's server when the adapter initializes.
      *
-     * @param McpAdapter $adapter Initialized WordPress MCP adapter.
+     * @param mixed $adapter Adapter passed by the shared MCP initialization hook.
      */
-    public static function server( McpAdapter $adapter ): void {
-        if ( ! Request_Context::enabled() || ! Request_Context::dependencies() ) {
+    public static function server( $adapter ): void {
+        if ( ! $adapter instanceof McpAdapter || ! Request_Context::enabled() || ! Request_Context::dependencies() ) {
             return;
         }
         $adapter->create_server(
