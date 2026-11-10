@@ -752,6 +752,10 @@ export default {
                 : widget_keys.includes(widget)
                   ? widget + "_" + (widget_keys.length + 1)
                   : widget;
+              // Keep preset card keys compatible with saved layouts and controls.
+              if (["listing_title", "listings_location"].includes(widget)) {
+                current_key = widget;
+              }
               _main_widget.widget_key = current_key;
 
               if (matched_field.widget_key) {
@@ -988,10 +992,14 @@ export default {
           }
 
           for (let widget of value[section][area]) {
-            const widget_key =
-              widget.widget_key ||
-              widget.original_widget_key ||
-              widget.widget_name;
+            const isPresetAlias = ["listing_title", "listings_location"].includes(
+              widget.widget_name,
+            );
+            const widget_key = isPresetAlias
+              ? widget.widget_name
+              : widget.widget_key ||
+                widget.original_widget_key ||
+                widget.widget_name;
             if (typeof widget_key === "undefined") {
               continue;
             }
@@ -1018,6 +1026,11 @@ export default {
               widget_name:
                 widget.widget_name || widget_template.widget_name || widget_key,
             };
+            if (isPresetAlias) {
+              active_widgets_data[widget_key].original_widget_key =
+                widget_template.original_widget_key;
+              active_widgets_data[widget_key].field_key = widget_template.field_key;
+            }
             selectedWidgets.push({
               section: section,
               area: area,

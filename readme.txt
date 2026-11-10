@@ -300,6 +300,12 @@ Directorist comes with an AI-powered directory builder. Use the Create with AI o
 
 == Changelog ==
 
+= 8.11.2 - Nov 10, 2026 =
+
+**Fixed**
+
+- Listing title and location fields disappearing from All Listings layouts after saving Directory Builder.
+
 = 8.11.1 - Nov 8, 2026 =
 
 **Security**
