@@ -176,8 +176,18 @@ class Conditional_Logic {
 
         $taxonomy = $taxonomy_map[ $field_key ];
 
-        if ( ! empty( $posted_data['tax_input'][ $taxonomy ] ) ) {
-            return $posted_data['tax_input'][ $taxonomy ];
+        if ( isset( $posted_data['tax_input'][ $taxonomy ] ) ) {
+            $values = $posted_data['tax_input'][ $taxonomy ];
+
+            // WordPress adds a hidden zero input to taxonomy checklists so an
+            // empty selection is submitted. It is not a selected term.
+            if ( is_array( $values ) ) {
+                return array_values( array_filter( $values, static function ( $value ) {
+                    return ! in_array( $value, [ 0, '0', '' ], true );
+                } ) );
+            }
+
+            return $values;
         }
 
         return null;
